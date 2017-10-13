@@ -26,9 +26,9 @@ defmodule EventStore.Store do
        end
   end
 
-  defp retry_error({:error, _, %{errors: [:sequence, {:dupe_seq_agg, _}]}, _}),
+  defp retry_error({:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _}),
     do: {:error, :retry_command}
-  defp retry_error(err), do: raise err
+  defp retry_error(err), do: raise EventStore.StoreError.exception(err)
 
   defp append_changeset(cs, mult),
     do: Multi.insert(mult, changeset_key(cs), cs, returning: true)
@@ -38,28 +38,52 @@ defmodule EventStore.Store do
   end
 
   def commit_snapshot(%Snapshot{} = s) do
-    upstmt = from s in Snapshot,
+    upstmt =
+      from s in Snapshot,
       where: fragment("s0.sequence < excluded.sequence"),
       update: [set: [sequence: fragment("excluded.sequence"),
                      body: fragment("excluded.body")]]
-    case Repo.insert_all([s],
+
+    case Repo.insert_all(
+          [s],
           conflict_target: [:aggregate_id],
-          on_conflict: upstmt) do
+          on_conflict: upstmt
+        ) do
       val -> val
     end
   end
 
   def get_events(aggregate_id, seq \\ 0) do
-    Repo.all(from e in Event,
+    Repo.all(
+      from e in Event,
       where: e.sequence > ^seq,
       where: e.aggregate_id == ^aggregate_id,
-      select: e)
+      select: e
+    )
   end
 
-  def get_snapshot(aggregate_id, seq \\ 0) do
-    Repo.one(from s in Snapshot,
+  def get_snapshot(
+    aggregate_id,
+    seq \\ 0
+  ) do
+    Repo.one(
+      from s in Snapshot,
       where: s.sequence > ^seq,
       where: s.aggregate_id == ^aggregate_id,
-      select: s)
+      select: s
+    )
+  end
+end
+
+defmodule EventStore.StoreError do
+  @moduledoc """
+  Raised when a transaction could not be completed and the error is one unsafe
+  for our explicit retry path.
+  """
+  defexception [:error, :message]
+
+  def exception(err) do
+    IO.inspect(err)
+    %__MODULE__{error: err, message: "unhandled ecto error"}
   end
 end

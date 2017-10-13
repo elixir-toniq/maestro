@@ -18,7 +18,12 @@ defmodule EventStore.StoreTest do
   describe "commit_events!" do
     property "no conflict events are committed" do
       check all agg_id <- timestamp(),
-        times <- uniq_list_of(timestamp(), min_length: 1) do
+        times          <- uniq_list_of(
+          timestamp(),
+          min_length: 1,
+          max_length: 10
+        ) do
+
         # generate matching sequence numbers
         seqs = 1..Enum.count(times)
 
@@ -29,6 +34,28 @@ defmodule EventStore.StoreTest do
         |> Store.commit_events!()
 
         assert Enum.count(times) == num_events(agg_id)
+      end
+    end
+
+    property "sequence conflicts are marked for retry" do
+      check all agg_id <- timestamp(),
+        ts0            <- timestamp(),
+        times          <- uniq_list_of(timestamp(), min_length: 1) do
+
+        seqs = 1..Enum.count(times)
+
+        times
+        |> Enum.zip(seqs)
+        |> Enum.map(&(to_event(&1, agg_id)))
+        |> Store.commit_events!()
+
+        e = to_event({ts0, 1}, agg_id)
+        {:error, reason} =
+          e
+          |> List.wrap()
+          |> Store.commit_events!()
+
+        assert reason == :retry_command
       end
     end
   end
