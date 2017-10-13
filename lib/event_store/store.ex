@@ -21,11 +21,12 @@ defmodule EventStore.Store do
     |> Enum.reduce(Multi.new, &append_changeset/2)
     |> Repo.transaction()
     |> case do
-         {:error, _multi_key, _cs} = err -> retry_error(err)
+         {:error, _multi_key, _cs, _res} = err -> retry_error(err)
+         {:ok, %{} = res} -> Map.values(res)
        end
   end
 
-  defp retry_error({:error, _key, %{errors: [:sequence, {:dupe_seq_agg, _}]}}),
+  defp retry_error({:error, _, %{errors: [:sequence, {:dupe_seq_agg, _}]}, _}),
     do: {:error, :retry_command}
   defp retry_error(err), do: raise err
 
