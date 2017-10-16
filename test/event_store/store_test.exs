@@ -23,13 +23,8 @@ defmodule EventStore.StoreTest do
           min_length: 1,
           max_length: 10
         ) do
-
-        # generate matching sequence numbers
-        seqs = 1..Enum.count(times)
-
-        # insert the provided records to the database
         times
-        |> Enum.zip(seqs)
+        |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
         |> Store.commit_events!()
 
@@ -42,10 +37,8 @@ defmodule EventStore.StoreTest do
         ts0            <- timestamp(),
         times          <- uniq_list_of(timestamp(), min_length: 1) do
 
-        seqs = 1..Enum.count(times)
-
         times
-        |> Enum.zip(seqs)
+        |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
         |> Store.commit_events!()
 
@@ -56,6 +49,43 @@ defmodule EventStore.StoreTest do
           |> Store.commit_events!()
 
         assert reason == :retry_command
+      end
+    end
+  end
+
+  describe "get_events" do
+    property "returns empty list when no relevant events exist" do
+      check all agg_id <- timestamp(),
+        times <- uniq_list_of(timestamp()) do
+
+        times
+        |> Enum.with_index(1)
+        |> Enum.map(&(to_event(&1, agg_id)))
+        |> Store.commit_events!()
+
+        assert [] == Store.get_events(agg_id, Enum.count(times) + 1)
+      end
+    end
+
+    property "returns events otherwise" do
+      check all agg_id <- timestamp(),
+        times <- uniq_list_of(timestamp(), min_length: 1) do
+
+        total = Enum.count(times)
+
+        times
+        |> Enum.with_index(1)
+        |> Enum.map(&(to_event(&1, agg_id)))
+        |> Store.commit_events!()
+
+        seq = times
+        |> Enum.with_index(1)
+        |> Enum.random()
+        |> elem(1)
+
+        assert agg_id
+        |> Store.get_events(seq)
+        |> Enum.count() == (total - seq)
       end
     end
   end
