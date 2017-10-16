@@ -13,8 +13,6 @@ defmodule EventStore.Generators do
   @max_counter_size 65_535
   @max_time_size 281_474_976_710_655
 
-  def ntp_millis, do: integer(0..@max_time_size)
-
   def int_of_size(size) do
     bind(bitstring(length: size), fn(<<n :: integer-size(size)>>) ->
       constant(n)

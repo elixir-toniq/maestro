@@ -26,12 +26,12 @@ defmodule EventStore.Store do
        end
   end
 
+  defp append_changeset(cs, mult),
+    do: Multi.insert(mult, changeset_key(cs), cs, returning: true)
+
   defp retry_error({:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _}),
     do: {:error, :retry_command}
   defp retry_error(err), do: raise EventStore.StoreError.exception(err)
-
-  defp append_changeset(cs, mult),
-    do: Multi.insert(mult, changeset_key(cs), cs, returning: true)
 
   defp changeset_key(cs) do
     "#{cs.data.aggregate_id}:#{cs.data.sequence}"
@@ -45,12 +45,20 @@ defmodule EventStore.Store do
                      body: fragment("excluded.body")]]
 
     case Repo.insert_all(
-          [s],
+          Snapshot,
+          for_insert(s),
           conflict_target: [:aggregate_id],
           on_conflict: upstmt
         ) do
-      val -> val
+      {x, _} when x >= 0 and x <= 1 -> :ok
     end
+  end
+
+  defp for_insert(%{} = struct) do
+    struct
+    |> Map.from_struct()
+    |> Map.delete(:__meta__)
+    |> List.wrap()
   end
 
   def get_events(aggregate_id, seq \\ 0) do
