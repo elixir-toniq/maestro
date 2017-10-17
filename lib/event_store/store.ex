@@ -3,6 +3,8 @@ defmodule EventStore.Store do
   Concise API for events and snapshots. Requires a Repo to operate.
   """
 
+  @default_options [max_sequence: nil]
+
   def commit_events!(events) do
     adapter().commit_events!(events)
   end
@@ -11,12 +13,20 @@ defmodule EventStore.Store do
     adapter().commit_snapshot(snapshot)
   end
 
-  def get_events(aggregate_id, seq) do
-    adapter().get_events(aggregate_id, seq)
+  def get_events(aggregate_id, seq, opts \\ []) do
+    options =
+      @default_options
+      |> Keyword.merge(opts)
+      |> Enum.into(%{})
+    adapter().get_events(aggregate_id, seq, options)
   end
 
-  def get_snapshot(aggregate_id, seq) do
-    adapter().get_snapshot(aggregate_id, seq)
+  def get_snapshot(aggregate_id, seq, opts \\ []) do
+    options =
+      @default_options
+      |> Keyword.merge(opts)
+      |> Enum.into(%{})
+    adapter().get_snapshot(aggregate_id, seq, options)
   end
 
   defp adapter do
@@ -33,8 +43,6 @@ defmodule EventStore.StoreError do
   defexception [:error, :message]
 
   def exception(err) do
-    IO.inspect(err)
     %__MODULE__{error: err, message: "unhandled ecto error"}
   end
 end
-

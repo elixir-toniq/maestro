@@ -20,11 +20,11 @@ defmodule EventStore.Store.InMemory do
     Agent.get_and_update(__MODULE__, &update_snapshot(&1, snapshot))
   end
 
-  def get_events(id, seq \\ 0) do
+  def get_events(id, seq \\ 0, _options \\ %{}) do
     Agent.get(__MODULE__, &return_events(&1, id, seq))
   end
 
-  def get_snapshot(id, seq \\ 0) do
+  def get_snapshot(id, seq \\ 0, _options \\ %{}) do
     Agent.get(__MODULE__, &return_snapshot(&1, id, seq))
   end
 

@@ -1,5 +1,5 @@
 defmodule EventStore.Command do
   @moduledoc false # for now
 
-  defstruct [:type, :entity_id, :sequence, :data]
+  defstruct [:type, :aggregate_id, :sequence, :data]
 end

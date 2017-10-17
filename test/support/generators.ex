@@ -37,4 +37,36 @@ defmodule EventStore.Generators do
   def max_node, do: @max_node_size
   def max_time, do: @max_time_size
   def max_counter, do: @max_counter_size
+
+  def commands(agg_id, opts \\ []) do
+    defaults = [max_commands: 10]
+    [max_commands: max_commands] = Keyword.merge(defaults, opts)
+    gen all com_flags <- list_of(
+      boolean(),
+      max_length: max_commands,
+      min_length: 1) do
+
+      com_flags
+      |> Enum.with_index(1)
+      |> Enum.map(&to_command(&1, agg_id))
+    end
+  end
+
+  def to_command({true, seq}, agg_id) do
+    %EventStore.Command{
+      type: "increment",
+      sequence: seq,
+      aggregate_id: agg_id,
+      data: %{}
+    }
+  end
+
+  def to_command({false, seq}, agg_id) do
+    %EventStore.Command{
+      type: "decrement",
+      sequence: seq,
+      aggregate_id: agg_id,
+      data: %{}
+    }
+  end
 end

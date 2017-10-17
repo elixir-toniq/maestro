@@ -31,25 +31,36 @@ defmodule EventStore.Store.Postgres do
     end
   end
 
-  def get_events(aggregate_id, seq \\ 0) do
-    Repo.all(
-      from e in Event,
-      where: e.sequence > ^seq,
-      where: e.aggregate_id == ^aggregate_id,
-      select: e
-    )
+  def get_events(aggregate_id, seq, options) do
+    base = from e in Event
+    base
+    |> bounded_sequence(seq, options)
+    |> for_aggregate(aggregate_id)
+    |> Repo.all()
   end
 
-  def get_snapshot(
-    aggregate_id,
-    seq \\ 0
-  ) do
-    Repo.one(
-      from s in Snapshot,
-      where: s.sequence > ^seq,
-      where: s.aggregate_id == ^aggregate_id,
-      select: s
-    )
+  def bounded_sequence(query, min_seq, %{max_sequence: nil}) do
+    from r in query,
+      where: r.sequence > ^min_seq
+  end
+  def bounded_sequence(query, min_seq, %{max_sequence: max_seq}) do
+    from r in query,
+      where: r.sequence > ^min_seq,
+      where: r.sequence <= ^max_seq
+  end
+
+  def for_aggregate(query, agg_id) do
+    from r in query,
+      where: r.aggregate_id == ^agg_id,
+      select: r
+  end
+
+  def get_snapshot(aggregate_id, seq, options) do
+    base = from s in Snapshot
+    base
+    |> bounded_sequence(seq, options)
+    |> for_aggregate(aggregate_id)
+    |> Repo.one()
   end
 
   defp insert_events(changesets) do
