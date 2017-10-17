@@ -9,6 +9,17 @@ defmodule EventStore.Schemas.Event do
 
   alias __MODULE__
 
+  @type sequence :: integer()
+
+  @type aggregate_id :: HLClock.t
+
+  @type t :: %__MODULE__{
+    timestamp: HLClock.t,
+    aggregate_id: aggregate_id(),
+    sequence: sequence(),
+    body: map(),
+  }
+
   @primary_key false
   schema "event_log" do
     field :timestamp, Ecto.HLClock, primary_key: true

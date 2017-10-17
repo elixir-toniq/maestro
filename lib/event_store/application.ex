@@ -14,6 +14,8 @@ defmodule EventStore.Application do
       supervisor(EventStore.Repo, []),
       # Start the endpoint when the application starts
       supervisor(EventStoreWeb.Endpoint, []),
+
+      worker(EventStore.Store.InMemory, []),
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
