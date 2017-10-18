@@ -1,69 +1,86 @@
 defmodule EventStore.Store.InMemory do
-  use GenServer
+  use Agent
   @behaviour EventStore.Store.Adapter
 
+  defstruct [events: %{}, snapshots: %{}]
+
   def start_link do
-    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
+    Agent.start_link(
+      &new_store/0,
+      name: __MODULE__
+    )
   end
 
-  def init(:ok) do
-    {:ok, %{events: [], snapshots: []}}
-  end
-
+  def commit_events!([]), do: []
   def commit_events!(events) do
-    GenServer.call(__MODULE__, {:commit_events, events})
+    Agent.get_and_update(__MODULE__, &update_events(&1, events))
   end
 
   def commit_snapshot(snapshot) do
-    GenServer.call(__MODULE__, {:commit_snapshot, snapshot})
+    Agent.get_and_update(__MODULE__, &update_snapshot(&1, snapshot))
   end
 
   def get_events(id, seq \\ 0) do
-    GenServer.call(__MODULE__, {:get_events, id, seq})
+    Agent.get(__MODULE__, &return_events(&1, id, seq))
   end
 
   def get_snapshot(id, seq \\ 0) do
-    GenServer.call(__MODULE__, {:get_snapshot, id, seq})
+    Agent.get(__MODULE__, &return_snapshot(&1, id, seq))
   end
 
-  def reset, do: GenServer.call(__MODULE__, :reset)
+  def reset, do: Agent.update(__MODULE__, &new_store/1)
 
-  def handle_call({:commit_events, new_events}, _from, state) do
-    if overlapping?(state.events, new_events) do
-      {:reply, {:error, :retry_command}, state}
+  defp update_events(%{events: all_events} = state, new_events) do
+    aid = new_events |> List.first() |> aggregate_id()
+    old_events  = Map.get(all_events, aid, [])
+
+    if overlapping?(old_events, new_events) do
+      {{:error, :retry_command}, state}
     else
-      {:reply, {:ok, new_events}, %{state | events: state.events ++ new_events}}
+      {new_events, %{state | events: Map.put(
+                        all_events,
+                        aid,
+                        old_events ++ new_events
+                      )}}
     end
   end
 
-  def handle_call({:commit_snapshot, snapshot}, _from, state) do
-    new_snapshots = [snapshot | state.snapshots]
-    {:reply, :ok, %{state | snapshots: new_snapshots}}
+  defp update_snapshot(%{snapshots: snaps} = state, new_snap) do
+    aid = aggregate_id(new_snap)
+    prev_snap = Map.get(snaps, aid, %{sequence: -1})
+    if prev_snap.sequence > new_snap.sequence do
+      {:ok, state}
+    else
+      {:ok, %{state | snapshots: Map.put(snaps, aid, new_snap)}}
+    end
   end
 
-  def handle_call({:get_events, id, seq}, _from, state) do
-    events = Enum.filter(state.events, & included?(&1, id, seq))
-    {:reply, events, state}
+  defp return_events(%{events: events}, id, seq) do
+    events
+    |> Map.get(id, [])
+    |> Enum.filter(fn (e) -> e.sequence > seq end)
   end
 
-  def handle_call({:get_snapshot, id, seq}, _from, state) do
-    snapshot = Enum.find(state.snapshots, & included?(&1, id, seq))
-    {:reply, {:ok, snapshot}, state}
+  defp return_snapshot(%{snapshots: snaps}, id, seq) do
+    snap = snaps |> Map.get(id, %{sequence: -1})
+    if snap.sequence > seq do
+      snap
+    else
+      nil
+    end
   end
 
-  def handle_call(:reset, _from, _state) do
-    {:reply, :ok, %{events: [], snapshots: []}}
-  end
+  defp new_store, do: %__MODULE__{}
+  defp new_store(_), do: new_store()
 
   defp overlapping?(old_events, new_events) do
-    max = Enum.max_by(old_events, &sequence/1, fn -> 1 end)
-    min = Enum.min_by(new_events, &sequence/1, fn -> 1 end)
-    max >= min
+    pseqs = Enum.map(old_events, &sequence/1)
+    cseqs = Enum.map(new_events, &sequence/1)
+
+    Enum.count(pseqs -- cseqs) != Enum.count(pseqs)
   end
 
   defp sequence(%{sequence: sequence}), do: sequence
 
-  defp included?(aggregate, id, seq) do
-    aggregate.aggregate_id == id && aggregate.sequence > seq
-  end
+  defp aggregate_id(%{aggregate_id: a}), do: a
 end

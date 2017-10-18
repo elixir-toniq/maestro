@@ -6,6 +6,14 @@ defmodule EventStore.Store.InMemoryTest do
 
   alias EventStore.Store
 
+  setup do
+    Application.put_env(
+      :event_store,
+      :storage_adapter,
+      EventStore.Store.InMemory
+    )
+  end
+
   describe "commit_events!/1" do
     property "no conflict events are committed" do
       check all agg_id <- timestamp(),
@@ -21,7 +29,7 @@ defmodule EventStore.Store.InMemoryTest do
         |> Enum.map(&(to_event(&1, agg_id)))
         |> Store.commit_events!()
 
-        {:ok, events} = Store.get_events(agg_id, 0)
+        events = Store.get_events(agg_id, 0)
 
         assert Enum.count(times) == Enum.count(events)
       end
@@ -102,7 +110,7 @@ defmodule EventStore.Store.InMemoryTest do
         |> to_snapshot(seq1, %{"seq" => seq1})
         |> Store.commit_snapshot
 
-        {:ok, snapshot} = Store.get_snapshot(agg_id, 0)
+        snapshot = Store.get_snapshot(agg_id, 0)
         assert Map.get(snapshot.body, "seq") == max(seq0, seq1)
       end
     end

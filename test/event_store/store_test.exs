@@ -12,7 +12,11 @@ defmodule EventStore.StoreTest do
   alias EventStore.Schemas.Event
 
   setup do
-    Application.put_env(:event_store, :storage_adapter, EventStore.Store.Postgres)
+    Application.put_env(
+      :event_store,
+      :storage_adapter,
+      EventStore.Store.Postgres
+    )
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
   end
 
