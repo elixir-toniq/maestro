@@ -1,23 +1,17 @@
-defmodule EventStore.StoreTest do
+defmodule EventStore.Store.InMemoryTest do
   use ExUnit.Case, async: false
-
   import StreamData
   import ExUnitProperties
-
-  import Ecto.Query
-
   import EventStore.Generators
 
-  alias EventStore.{Repo, Store}
-  alias EventStore.Schemas.Event
+  alias EventStore.Store
 
   setup do
     Application.put_env(
       :event_store,
       :storage_adapter,
-      EventStore.Store.Postgres
+      EventStore.Store.InMemory
     )
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
   end
 
   describe "commit_events!/1" do
@@ -28,12 +22,16 @@ defmodule EventStore.StoreTest do
           min_length: 1,
           max_length: 10
         ) do
+        EventStore.Store.InMemory.reset()
+
         times
         |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
         |> Store.commit_events!()
 
-        assert Enum.count(times) == num_events(agg_id)
+        events = Store.get_events(agg_id, 0)
+
+        assert Enum.count(times) == Enum.count(events)
       end
     end
 
@@ -41,6 +39,7 @@ defmodule EventStore.StoreTest do
       check all agg_id <- timestamp(),
         ts0            <- timestamp(),
         times          <- uniq_list_of(timestamp(), min_length: 1) do
+        EventStore.Store.InMemory.reset()
 
         times
         |> Enum.with_index(1)
@@ -62,6 +61,7 @@ defmodule EventStore.StoreTest do
     property "returns empty list when no relevant events exist" do
       check all agg_id <- timestamp(),
         times <- uniq_list_of(timestamp()) do
+        EventStore.Store.InMemory.reset()
 
         times
         |> Enum.with_index(1)
@@ -75,6 +75,7 @@ defmodule EventStore.StoreTest do
     property "returns events otherwise" do
       check all agg_id <- timestamp(),
         times <- uniq_list_of(timestamp(), min_length: 1) do
+        EventStore.Store.InMemory.reset()
 
         total = Enum.count(times)
 
@@ -99,25 +100,18 @@ defmodule EventStore.StoreTest do
     property "commits if newer" do
       check all agg_id <- timestamp(),
         [seq0, seq1] <- uniq_list_of(integer(1..100_000), length: 2) do
+        EventStore.Store.InMemory.reset()
 
         agg_id
-        |> to_snapshot(seq0, %{"seq0" => seq0})
-        |> Store.commit_snapshot()
+        |> to_snapshot(seq0, %{"seq" => seq0})
+        |> Store.commit_snapshot
 
         agg_id
-        |> to_snapshot(seq1, %{"seq1" => seq1})
-        |> Store.commit_snapshot()
+        |> to_snapshot(seq1, %{"seq" => seq1})
+        |> Store.commit_snapshot
 
-        in_db = Repo.one(
-          from s in EventStore.Schemas.Snapshot,
-          where: s.aggregate_id == ^agg_id,
-          select: s
-        )
-
-        case seq0 > seq1 do
-          true -> assert Map.get(in_db.body, "seq0") == seq0
-          false -> assert Map.get(in_db.body, "seq1") == seq1
-        end
+        snapshot = Store.get_snapshot(agg_id, 0)
+        assert Map.get(snapshot.body, "seq") == max(seq0, seq1)
       end
     end
   end
@@ -126,23 +120,20 @@ defmodule EventStore.StoreTest do
     property "retrieve if newer" do
       check all agg_id <- timestamp(),
         [seq0, seq1] <- uniq_list_of(integer(1..100_000), length: 2) do
+        EventStore.Store.InMemory.reset()
 
         agg_id
-        |> to_snapshot(seq0, %{"seq0" => seq0})
-        |> Store.commit_snapshot()
+        |> to_snapshot(seq0, %{"seq" => seq0})
+        |> Store.commit_snapshot
 
         case Store.get_snapshot(agg_id, seq1) do
-          nil -> assert seq1 > seq0
-          %EventStore.Schemas.Snapshot{} = _snap -> assert seq1 < seq0
+          nil ->
+            assert seq1 > seq0
+          %EventStore.Schemas.Snapshot{} ->
+            assert seq1 < seq0
         end
       end
     end
-  end
-
-  def num_events(agg_id) do
-    Repo.one!(from e in Event,
-      where: e.aggregate_id == ^agg_id,
-      select: count(e.aggregate_id))
   end
 
   def to_snapshot(agg_id, seq, body \\ %{}),

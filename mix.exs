@@ -44,7 +44,7 @@ defmodule EventStore.Mixfile do
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:benchee, "~> 0.9", only: :dev},
-      {:ecto_hlclock, path: "/Users/neilmenne/code/pylon/v2/ecto_hlclock"}
+      {:ecto_hlclock, git: "git@github.com:tonic-sys/ecto_hlclock.git"}
     ]
   end
 
