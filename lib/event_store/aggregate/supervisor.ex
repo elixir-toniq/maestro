@@ -15,7 +15,10 @@ defmodule EventStore.Aggregate.Supervisor do
   end
 
   def init(_args) do
-    child = Supervisor.child_spec(Aggregate, start: {Aggregate, :start_link, []})
+    child = Supervisor.child_spec(
+      Aggregate,
+      start: {Aggregate, :start_link, []}
+    )
 
     Supervisor.init([child], strategy: :simple_one_for_one)
   end

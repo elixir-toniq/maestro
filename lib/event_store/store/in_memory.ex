@@ -37,11 +37,12 @@ defmodule EventStore.Store.InMemory do
     if overlapping?(old_events, new_events) do
       {{:error, :retry_command}, state}
     else
-      {new_events, %{state | events: Map.put(
-                        all_events,
-                        aid,
-                        old_events ++ new_events
-                      )}}
+      all_events = Map.put(
+        all_events,
+        aid,
+        old_events ++ new_events
+      )
+      {:ok, %{state | events: all_events}}
     end
   end
 

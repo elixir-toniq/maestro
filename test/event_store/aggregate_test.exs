@@ -24,8 +24,7 @@ defmodule EventStore.AggregateTest do
 
         {:ok, pid} = SampleAggregate.start_link(agg_id)
         for com <- coms do
-          events = GenServer.call(pid, {:eval_command, com})
-          GenServer.call(pid, {:apply_events, events})
+          apply_command(pid, com)
         end
 
         value = GenServer.call(pid, :get_state)
@@ -65,9 +64,7 @@ defmodule EventStore.AggregateTest do
   end
 
   def apply_command(pid, command) do
-    events = GenServer.call(pid, {:eval_command, command})
-    EventStore.Store.commit_events!(events)
-    GenServer.call(pid, {:apply_events, events})
+    GenServer.call(pid, {:eval_command, command})
   end
 
   def increments(commands) do

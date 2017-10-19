@@ -69,12 +69,12 @@ defmodule EventStore.Store.Postgres do
     |> Repo.transaction()
     |> case do
          {:error, _multi_key, _cs, _res} = err -> retry_error(err)
-         {:ok, %{} = res} -> Map.values(res)
+         {:ok, _} -> :ok
        end
   end
 
   defp append_changeset(cs, mult),
-    do: Multi.insert(mult, changeset_key(cs), cs, returning: true)
+    do: Multi.insert(mult, changeset_key(cs), cs)
 
   defp retry_error({:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _}),
     do: {:error, :retry_command}

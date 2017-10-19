@@ -83,29 +83,40 @@ defmodule EventStore.Aggregate do
       end
 
       def handle_call(:get_state, _from, agg), do: {:reply, agg.state, agg}
-      def handle_call({:get_state, seq}, _from, agg),
-        do: {:reply, at_sequence(agg, seq), agg}
-      def handle_call(:get_snapshot, _from, agg),
-        do: {:reply, to_snapshot(agg), agg}
-      def handle_call({:eval_command, command}, _from, agg) do
-        # command implies knowledge of events we haven't seen yet, update before
-        # processing
-        agg = case command.sequence > agg.sequence do
-                true -> update_aggregate(agg)
-                false -> agg
-              end
-
-        {:reply, eval_command(agg, command), agg}
+      def handle_call({:get_state, seq}, _from, agg) do
+        {:reply, at_sequence(agg, seq), agg}
       end
-
-      def handle_call({:apply_events, []}, _from, agg),
-        do: {:reply, :ok, agg}
-      def handle_call({:apply_events, events}, _from, agg) do
-        {:reply, :ok, apply_events(agg, events)}
+      def handle_call(:get_snapshot, _from, agg) do
+        {:reply, to_snapshot(agg), agg}
+      end
+      def handle_call({:eval_command, command}, _from, agg) do
+        {:reply, :ok, handle_command(agg, command)}
       end
 
       def handle_info(:initialize, agg), do: {:noreply, update_aggregate(agg)}
       def handle_info(_msg, state), do: {:noreply, state}
+
+      def handle_command(agg, com) do
+        with agg                   <- command_update(agg, com),
+             evs when is_list(evs) <- eval_command(agg, com),
+               %Aggregate{} = agg  <- handle_events(agg, com, evs) do
+          agg
+        end
+      end
+
+      defp command_update(%{sequence: a} = agg, %{sequence: c}) when c > a,
+        do: update_aggregate(agg)
+      defp command_update(agg, _), do: agg
+
+      def handle_events(agg, command, events) do
+        case Store.commit_events!(events) do
+          :ok -> apply_events(agg, events)
+          {:error, :retry_command} ->
+            agg
+            |> update_aggregate()
+            |> handle_command(command)
+        end
+      end
 
       def create_aggregate(id) do
         %Aggregate{id: id, sequence: 0, state: initial_state()}
@@ -163,7 +174,7 @@ defmodule EventStore.Aggregate do
       end
 
       def whereis(agg_id) do
-        EventStore.Aggregate.Supervisor.get_child(agg_id)
+        EventStore.Aggregate.Supervisor.get_child(agg_id, __MODULE__)
       end
     end
   end

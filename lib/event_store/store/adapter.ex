@@ -7,7 +7,7 @@ defmodule EventStore.Store.Adapter do
 
   @type options :: map
 
-  @callback commit_events!([Event.t]) :: [Event.t]
+  @callback commit_events!([Event.t]) :: :ok
                                        | {:error, :retry_command}
                                        | :no_return
 
