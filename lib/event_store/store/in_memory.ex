@@ -1,6 +1,11 @@
 defmodule EventStore.Store.InMemory do
-  use Agent
+  @moduledoc """
+  Agent-based implementation of the event/snapshot storage mechanism
+  """
+
   @behaviour EventStore.Store.Adapter
+
+  use Agent
 
   defstruct [events: %{}, snapshots: %{}]
 

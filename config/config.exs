@@ -10,14 +10,6 @@ config :event_store,
   ecto_repos: [EventStore.Repo],
   generators: [binary_id: true]
 
-# Configures the endpoint
-config :event_store, EventStoreWeb.Endpoint,
-  url: [host: "localhost"],
-  secret_key_base: "ulWS7RjSlgM8QpY1ROP50XLxAp1hvoRodcUKAnxdVupH22M44czcDtSATyuwxm3+",
-  render_errors: [view: EventStoreWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: EventStore.PubSub,
-           adapter: Phoenix.PubSub.PG2]
-
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

@@ -29,11 +29,13 @@ defmodule EventStore.Aggregate do
     state: any
   }
 
+  @type agg :: __MODULE__.t
+
   @callback initial_state() :: any
-  @callback eval_command(agg :: Aggregate.t, command :: Command.t) :: [Event.t]
-  @callback apply_event(agg :: Aggregate.t, event :: Event.t) :: any
-  @callback prepare_snapshot(agg :: Aggregate.t) :: map
-  @callback use_snapshot(agg :: Aggregate.t, snapshot :: Snapshot.t) :: any
+  @callback eval_command(agg, command :: Command.t) :: [Event.t]
+  @callback apply_event(agg, event :: Event.t) :: any
+  @callback prepare_snapshot(agg) :: map
+  @callback use_snapshot(agg, snapshot :: Snapshot.t) :: any
   @optional_callbacks initial_state: 0, prepare_snapshot: 1, use_snapshot: 2
 
   def child_spec(opts) do
@@ -94,9 +96,8 @@ defmodule EventStore.Aggregate do
       end
 
       def handle_info(:initialize, agg), do: {:noreply, update_aggregate(agg)}
-      def handle_info(_msg, state), do: {:noreply, state}
 
-      def handle_command(agg, com) do
+      defp handle_command(agg, com) do
         with agg                   <- command_update(agg, com),
              evs when is_list(evs) <- eval_command(agg, com),
                %Aggregate{} = agg  <- handle_events(agg, com, evs) do
@@ -118,20 +119,20 @@ defmodule EventStore.Aggregate do
         end
       end
 
-      def create_aggregate(id) do
+      defp create_aggregate(id) do
         %Aggregate{id: id, sequence: 0, state: initial_state()}
       end
 
-      def to_snapshot(%{id: i, state: s, sequence: n}),
+      defp to_snapshot(%{id: i, state: s, sequence: n}),
         do: %Snapshot{aggregate_id: i, body: prepare_snapshot(s), sequence: n}
 
-      def at_sequence(agg, sequence) do
+      defp at_sequence(agg, sequence) do
         agg.id
         |> create_aggregate
         |> update_aggregate(sequence)
       end
 
-      def update_aggregate(agg, max_seq \\ nil) do
+      defp update_aggregate(agg, max_seq \\ nil) do
         agg = case Store.get_snapshot(
                     agg.id,
                     agg.sequence,
@@ -156,8 +157,8 @@ defmodule EventStore.Aggregate do
         end)
       end
 
-      def apply_events(agg, []), do: agg
-      def apply_events(agg, events) do
+      defp apply_events(agg, []), do: agg
+      defp apply_events(agg, events) do
         new_state = Enum.reduce(
           events,
           agg.state,
@@ -185,9 +186,12 @@ defmodule EventStore.Aggregate do
         name = {:via, Registry, {EventStore.Aggregate.Registry, agg_id}}
         GenServer.start_link(__MODULE__, agg_id, name: name)
       end
+
       def eval_command(_, _), do: {:error, :unrecognized_command}
+
+      # provide a base case for handle_info after the fact, so users can extend
+      # handle_info on their own
+      def handle_info(_msg, state), do: {:noreply, state}
     end
   end
-
-  def default_registry_fn(agg_id), do: {:global, agg_id}
 end

@@ -1,11 +1,18 @@
 defmodule EventStore.Store.Postgres do
+  @moduledoc """
+  Ecto+Postgres implementation of the storage mechanism.
+
+  Events are never replayed outside of the aggregate's context, so the
+  implementation doesn't support retrieval without an aggregate ID.
+  """
+
   @behaviour EventStore.Store.Adapter
 
   import Ecto.Query
 
   alias Ecto.Multi
 
-  alias EventStore.Repo
+  alias EventStore.{Repo, StoreError}
   alias EventStore.Schemas.{Event, Snapshot}
 
   def commit_events!(events) do
@@ -78,7 +85,7 @@ defmodule EventStore.Store.Postgres do
 
   defp retry_error({:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _}),
     do: {:error, :retry_command}
-  defp retry_error(err), do: raise EventStore.StoreError.exception(err)
+  defp retry_error(err), do: raise StoreError.exception(err)
 
   defp changeset_key(cs) do
     "#{cs.data.aggregate_id}:#{cs.data.sequence}"
