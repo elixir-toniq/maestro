@@ -16,6 +16,8 @@ defmodule EventStore.Application do
       supervisor(EventStoreWeb.Endpoint, []),
 
       worker(EventStore.Store.InMemory, []),
+
+      {EventStore.AggregateSupervisor, []},
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

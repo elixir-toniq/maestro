@@ -25,6 +25,20 @@ defmodule EventStore.Aggregate do
   @callback apply_event(state :: any, event :: Event.t) :: any
   @callback use_snapshot(curr :: any, snapshot :: Snapshot.t) :: any
 
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :worker,
+      restart: :temporary,
+      shutdown: 500
+    }
+  end
+
+  def start_link(agg_id, module_name) do
+    module_name.start_link(agg_id)
+  end
+
   defmacro __using__(_) do
     quote location: :keep do
       use GenServer
@@ -97,13 +111,24 @@ defmodule EventStore.Aggregate do
       def apply_events(state, events) do
         Enum.reduce(events, state, &apply_event/2)
       end
+
+      def call(agg_id, msg) do
+        agg_id
+        |> whereis
+        |> GenServer.call(msg)
+      end
+
+      def whereis(agg_id) do
+        EventStore.Aggregate.Supervisor.get_child(agg_id)
+      end
     end
   end
 
   defmacro __before_compile__(_) do
     quote do
-      def start_link(registry, agg_id) do
-        GenServer.start_link(__MODULE__, agg_id, name: {registry, agg_id})
+      def start_link(agg_id) do
+        name = {:via, Registry, {EventStore.Aggregate.Registry, agg_id}}
+        GenServer.start_link(__MODULE__, agg_id, name: name)
       end
     end
   end
