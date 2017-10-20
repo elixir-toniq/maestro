@@ -29,7 +29,7 @@ defmodule EventStore.Aggregate do
     state: any
   }
 
-  @type agg :: __MODULE__.t
+  @type agg :: t
 
   @callback initial_state() :: any
   @callback eval_command(agg, command :: Command.t) :: [Event.t]
