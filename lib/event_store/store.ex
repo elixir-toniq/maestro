@@ -3,7 +3,7 @@ defmodule EventStore.Store do
   Concise API for events and snapshots. Requires a Repo to operate.
   """
 
-  @default_options [max_sequence: nil]
+  @default_options [max_sequence: 2_147_483_647]
 
   def commit_events!(events) do
     adapter().commit_events!(events)
@@ -33,6 +33,8 @@ defmodule EventStore.Store do
     Application.get_env(
       :event_store, :storage_adapter, EventStore.Store.InMemory)
   end
+
+  def max_sequence, do: @default_options[:max_sequence]
 end
 
 defmodule EventStore.StoreError do

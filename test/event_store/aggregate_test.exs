@@ -22,49 +22,72 @@ defmodule EventStore.AggregateTest do
       check all agg_id <- timestamp(),
         coms           <- commands(agg_id, max_commands: 200) do
 
-        {:ok, pid} = SampleAggregate.start_link(agg_id)
         for com <- coms do
-          apply_command(pid, com)
+          apply_command(com)
         end
 
-        value = GenServer.call(pid, :get_state)
+        value = SampleAggregate.call(agg_id, :get_state)
         assert value == (increments(coms) - decrements(coms))
       end
     end
 
     test "commands, events, and snapshots" do
-      {:ok, agg_id} = HLClock.now
-      {:ok, pid} = SampleAggregate.start_link(agg_id)
+      {:ok, pid, agg_id} = SampleAggregate.new()
 
-      apply_command(pid, %Command{type: "increment",
-                                  sequence: 1,
-                                  aggregate_id: agg_id,
-                                  data: %{}})
+      assert 0 == SampleAggregate.call(agg_id, :get_state)
 
-      apply_command(pid, %Command{type: "increment",
-                                  sequence: 1,
-                                  aggregate_id: agg_id,
-                                  data: %{}})
+      apply_command(%Command{type: "increment",
+                             sequence: 1,
+                             aggregate_id: agg_id,
+                             data: %{}})
 
-      snapshot = GenServer.call(pid, :get_snapshot)
+      apply_command(%Command{type: "increment",
+                             sequence: 1,
+                             aggregate_id: agg_id,
+                             data: %{}})
+
+      snapshot = SampleAggregate.call(agg_id, :get_snapshot)
       EventStore.Store.commit_snapshot(snapshot)
 
       GenServer.stop(pid)
 
-      {:ok, pid} = SampleAggregate.start_link(agg_id)
+      {:ok, _pid} = SampleAggregate.start_link(agg_id)
 
-      apply_command(pid, %Command{type: "increment",
-                                  sequence: 1,
-                                  aggregate_id: agg_id,
-                                  data: %{}})
+      apply_command(%Command{type: "increment",
+                             sequence: 1,
+                             aggregate_id: agg_id,
+                             data: %{}})
 
-      value = GenServer.call(pid, :get_state)
-      assert value == 3
+      assert 3 = SampleAggregate.call(agg_id, :get_state)
+    end
+
+    test "recover an intermediate state" do
+      {:ok, _pid, agg_id} = SampleAggregate.new()
+
+      base_command = %Command{type: "increment",
+                              sequence: 1,
+                              aggregate_id: agg_id,
+                              data: %{}}
+
+      commands =
+        base_command
+        |> repeat(10)
+        |> Enum.with_index(1)
+        |> Enum.map(fn ({c, i}) -> %{c | sequence: i} end)
+
+      for com <- commands, do: apply_command(com)
+
+      assert 2 == SampleAggregate.call(agg_id, {:get_state, 2})
+      assert 10 == SampleAggregate.call(agg_id, :get_state)
     end
   end
 
-  def apply_command(pid, command) do
-    GenServer.call(pid, {:eval_command, command})
+  def repeat(val, times) do
+    Enum.map(0..(times - 1), fn (_) -> val end)
+  end
+
+  def apply_command(command) do
+    SampleAggregate.call(command.aggregate_id, {:eval_command, command})
   end
 
   def increments(commands) do

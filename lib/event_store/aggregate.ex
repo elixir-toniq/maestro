@@ -130,9 +130,10 @@ defmodule EventStore.Aggregate do
         agg.id
         |> create_aggregate
         |> update_aggregate(sequence)
+        |> Map.get(:state)
       end
 
-      defp update_aggregate(agg, max_seq \\ nil) do
+      defp update_aggregate(agg, max_seq \\ Store.max_sequence) do
         agg = case Store.get_snapshot(
                     agg.id,
                     agg.sequence,
@@ -142,7 +143,7 @@ defmodule EventStore.Aggregate do
                 snap -> %{agg | state: use_snapshot(agg, snap),
                          sequence: snap.sequence}
               end
-        events = Store.get_events(agg.id, agg.sequence)
+        events = Store.get_events(agg.id, agg.sequence, max_sequence: max_seq)
         apply_events(agg, events)
       end
 
@@ -176,6 +177,20 @@ defmodule EventStore.Aggregate do
 
       def whereis(agg_id) do
         EventStore.Aggregate.Supervisor.get_child(agg_id, __MODULE__)
+      end
+
+      @doc """
+      Commands suppose an `aggregate_id`. This means that aggregates will need
+      to be able to generate an ID and an initial state before accepting
+      commands.
+      """
+      def new do
+        with {:ok, agg_id} <- HLClock.now() do
+          pid =
+            agg_id
+            |> whereis
+          {:ok, pid, agg_id}
+        end
       end
     end
   end

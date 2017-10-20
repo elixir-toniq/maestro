@@ -38,19 +38,15 @@ defmodule EventStore.Store.Postgres do
     end
   end
 
-  def get_events(aggregate_id, seq, options) do
+  def get_events(aggregate_id, min_seq, %{max_sequence: max_seq}) do
     base = from e in Event
     base
-    |> bounded_sequence(seq, options)
+    |> bounded_sequence(min_seq, max_seq)
     |> for_aggregate(aggregate_id)
     |> Repo.all()
   end
 
-  def bounded_sequence(query, min_seq, %{max_sequence: nil}) do
-    from r in query,
-      where: r.sequence > ^min_seq
-  end
-  def bounded_sequence(query, min_seq, %{max_sequence: max_seq}) do
+  def bounded_sequence(query, min_seq, max_seq) do
     from r in query,
       where: r.sequence > ^min_seq,
       where: r.sequence <= ^max_seq
@@ -62,10 +58,10 @@ defmodule EventStore.Store.Postgres do
       select: r
   end
 
-  def get_snapshot(aggregate_id, seq, options) do
+  def get_snapshot(aggregate_id, min_seq, %{max_sequence: max_seq}) do
     base = from s in Snapshot
     base
-    |> bounded_sequence(seq, options)
+    |> bounded_sequence(min_seq, max_seq)
     |> for_aggregate(aggregate_id)
     |> Repo.one()
   end
