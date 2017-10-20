@@ -21,9 +21,9 @@ defmodule EventStore.Store.Adapter do
   for any other reason, the storage mechanism should raise an appropriate
   exception.
   """
-  @callback commit_events!([Event.t]) :: :ok
-                                       | {:error, :retry_command}
-                                       | :no_return
+  @callback commit_events([Event.t]) :: :ok
+                                      | {:error, :retry_command}
+                                      | :no_return
 
   @doc """
   Snapshots are committed iff the proposed version is newer than the version

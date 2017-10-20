@@ -85,12 +85,15 @@ defmodule EventStore.Aggregate do
       end
 
       def handle_call(:get_state, _from, agg), do: {:reply, agg.state, agg}
+
       def handle_call({:get_state, seq}, _from, agg) do
         {:reply, at_sequence(agg, seq), agg}
       end
+
       def handle_call(:get_snapshot, _from, agg) do
         {:reply, to_snapshot(agg), agg}
       end
+
       def handle_call({:eval_command, command}, _from, agg) do
         {:reply, :ok, handle_command(agg, command)}
       end
@@ -110,7 +113,7 @@ defmodule EventStore.Aggregate do
       defp command_update(agg, _), do: agg
 
       def handle_events(agg, command, events) do
-        case Store.commit_events!(events) do
+        case Store.commit_events(events) do
           :ok -> apply_events(agg, events)
           {:error, :retry_command} ->
             agg
