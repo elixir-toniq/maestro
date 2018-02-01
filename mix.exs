@@ -7,7 +7,6 @@ defmodule EventStore.Mixfile do
       version: "0.0.1",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
       aliases: aliases(),
       deps: deps()
@@ -33,18 +32,15 @@ defmodule EventStore.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.3.0"},
-      {:phoenix_pubsub, "~> 1.0"},
-      {:phoenix_ecto, "~> 3.2"},
+      {:ecto, "~> 2.2"},
       {:postgrex, ">= 0.0.0"},
-      {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
+      {:poison, "~> 3.0"},
+      {:ecto_hlclock, git: "git@github.com:tonic-sys/ecto_hlclock.git"},
       {:credo, "~> 0.5", only: [:dev, :test]},
       {:dogma, "~> 0.1", only: [:dev]},
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
-      {:benchee, "~> 0.9", only: :dev},
-      {:ecto_hlclock, git: "git@github.com:tonic-sys/ecto_hlclock.git"}
+      {:benchee, "~> 0.9", only: :dev}
     ]
   end
 

@@ -1,4 +1,9 @@
 defmodule EventStore.AggregateSupervisor do
+  @moduledoc """
+  Simple supervisor that ensures that should the registry or the aggregate
+  supervisor go down, things are brought back up cleanly.
+  """
+
   use Supervisor
 
   def start_link(args) do

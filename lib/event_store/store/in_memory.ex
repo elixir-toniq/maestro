@@ -1,6 +1,11 @@
 defmodule EventStore.Store.InMemory do
-  use Agent
+  @moduledoc """
+  Agent-based implementation of the event/snapshot storage mechanism
+  """
+
   @behaviour EventStore.Store.Adapter
+
+  use Agent
 
   defstruct [events: %{}, snapshots: %{}]
 
@@ -11,8 +16,8 @@ defmodule EventStore.Store.InMemory do
     )
   end
 
-  def commit_events!([]), do: []
-  def commit_events!(events) do
+  def commit_events([]), do: []
+  def commit_events(events) do
     Agent.get_and_update(__MODULE__, &update_events(&1, events))
   end
 
@@ -20,12 +25,12 @@ defmodule EventStore.Store.InMemory do
     Agent.get_and_update(__MODULE__, &update_snapshot(&1, snapshot))
   end
 
-  def get_events(id, seq \\ 0) do
-    Agent.get(__MODULE__, &return_events(&1, id, seq))
+  def get_events(id, min_seq, %{max_sequence: max_seq}) do
+    Agent.get(__MODULE__, &return_events(&1, id, min_seq, max_seq))
   end
 
-  def get_snapshot(id, seq \\ 0) do
-    Agent.get(__MODULE__, &return_snapshot(&1, id, seq))
+  def get_snapshot(id, min_seq, %{max_sequence: max_seq}) do
+    Agent.get(__MODULE__, &return_snapshot(&1, id, min_seq, max_seq))
   end
 
   def reset, do: Agent.update(__MODULE__, &new_store/1)
@@ -37,11 +42,12 @@ defmodule EventStore.Store.InMemory do
     if overlapping?(old_events, new_events) do
       {{:error, :retry_command}, state}
     else
-      {new_events, %{state | events: Map.put(
-                        all_events,
-                        aid,
-                        old_events ++ new_events
-                      )}}
+      all_events = Map.put(
+        all_events,
+        aid,
+        old_events ++ new_events
+      )
+      {:ok, %{state | events: all_events}}
     end
   end
 
@@ -55,20 +61,22 @@ defmodule EventStore.Store.InMemory do
     end
   end
 
-  defp return_events(%{events: events}, id, seq) do
+  defp return_events(%{events: events}, id, min_seq, max_seq) do
     events
     |> Map.get(id, [])
-    |> Enum.filter(fn (e) -> e.sequence > seq end)
+    |> Enum.filter(&(in_range?(&1, min_seq, max_seq)))
   end
 
-  defp return_snapshot(%{snapshots: snaps}, id, seq) do
+  defp return_snapshot(%{snapshots: snaps}, id, min_seq, max_seq) do
     snap = snaps |> Map.get(id, %{sequence: -1})
-    if snap.sequence > seq do
+    if in_range?(snap, min_seq, max_seq) do
       snap
     else
       nil
     end
   end
+
+  def in_range?(%{sequence: s}, min, max), do: s > min and s <= max
 
   defp new_store, do: %__MODULE__{}
   defp new_store(_), do: new_store()

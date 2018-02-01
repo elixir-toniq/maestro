@@ -17,13 +17,26 @@ defmodule EventStore.Aggregate do
     * updating state via snapshots and events
   """
 
+  alias __MODULE__
   alias EventStore.Command
   alias EventStore.Store
   alias EventStore.Schemas.{Event, Snapshot}
 
-  @callback eval_command(state :: any, command :: Command.t) :: [Event.t]
-  @callback apply_event(state :: any, event :: Event.t) :: any
-  @callback use_snapshot(curr :: any, snapshot :: Snapshot.t) :: any
+  defstruct [:id, :sequence, :state]
+  @type t :: %__MODULE__{
+    id: HLClock.Timestamp.t,
+    sequence: integer,
+    state: any
+  }
+
+  @type agg :: t
+
+  @callback initial_state() :: any
+  @callback eval_command(agg, command :: Command.t) :: [Event.t]
+  @callback apply_event(agg, event :: Event.t) :: any
+  @callback prepare_snapshot(agg) :: map
+  @callback use_snapshot(agg, snapshot :: Snapshot.t) :: any
+  @optional_callbacks initial_state: 0, prepare_snapshot: 1, use_snapshot: 2
 
   def child_spec(opts) do
     %{
@@ -43,59 +56,99 @@ defmodule EventStore.Aggregate do
     quote location: :keep do
       use GenServer
 
+      import unquote(__MODULE__)
+
       @behaviour unquote(__MODULE__)
       @before_compile unquote(__MODULE__)
 
-      def init(%HLClock.Timestamp{} = id) do
-        {:ok, %{id: id, sequence: 0, state: nil}}
-      end
-
-      def handle_call(:get_state, _from, state), do: {:reply, state, state}
-
-      def handle_call(:snapshot, _from, agg), do: {:ok, to_snapshot(agg), agg}
-
-      def handle_call(:update_state, _from, agg),
-        do: {:reply, :ok, update_aggregate(agg)}
-
-      def handle_call({:eval_command, command}, _from, agg) do
-        # command implies knowledge of events we haven't seen yet, update before
-        # processing
-        agg = case command.sequence > agg.sequence do
-                true -> update_aggregate(agg)
-                false -> agg
-              end
-
-        {:reply, eval_command(agg.state, command), agg}
-      end
-
-      def handle_call({:apply_events, []}, _from, state),
-        do: {:reply, :ok, state}
-      def handle_call({:apply_events, events}, _from, state) do
-        {:reply, :ok, apply_events(state, events)}
-      end
+      def initial_state, do: %{}
 
       def eval_command(_, _), do: []
 
       def apply_event(prev, _), do: prev
 
+      def prepare_snapshot(s), do: s
+
       def use_snapshot(_, snapshot), do: snapshot.body
 
-      defoverridable unquote(__MODULE__)
+      defoverridable [
+        initial_state: 0,
+        eval_command: 2,
+        apply_event: 2,
+        prepare_snapshot: 1,
+        use_snapshot: 2
+      ]
 
-      def to_snapshot(%{id: i, state: s, sequence: n}),
-        do: %Snapshot{aggregate_id: i, body: s, sequence: n}
-
-      def update_aggregate(agg) do
-        {state, seq} = case Store.get_snapshot(agg.id, agg.sequence) do
-                         nil -> {agg.state, agg.sequence}
-                         snap -> {use_snapshot(agg.state, snap), snap.sequence}
-                       end
-        events = Store.get_events(agg.id, seq)
-        %{agg | state: apply_events(state, events),
-          sequence: new_seq(events) || seq}
+      def init(%HLClock.Timestamp{} = id) do
+        send(self(), :initialize)
+        {:ok, id |> create_aggregate()}
       end
 
-      defp new_seq(events), do: events |> max_seq()
+      def handle_call(:get_state, _from, agg), do: {:reply, agg.state, agg}
+
+      def handle_call({:get_state, seq}, _from, agg) do
+        {:reply, at_sequence(agg, seq), agg}
+      end
+
+      def handle_call(:get_snapshot, _from, agg) do
+        {:reply, to_snapshot(agg), agg}
+      end
+
+      def handle_call({:eval_command, command}, _from, agg) do
+        {:reply, :ok, handle_command(agg, command)}
+      end
+
+      def handle_info(:initialize, agg), do: {:noreply, update_aggregate(agg)}
+
+      defp handle_command(agg, com) do
+        with agg                   <- command_update(agg, com),
+             evs when is_list(evs) <- eval_command(agg, com),
+               %Aggregate{} = agg  <- handle_events(agg, com, evs) do
+          agg
+        end
+      end
+
+      defp command_update(%{sequence: a} = agg, %{sequence: c}) when c > a,
+        do: update_aggregate(agg)
+      defp command_update(agg, _), do: agg
+
+      def handle_events(agg, command, events) do
+        case Store.commit_events(events) do
+          :ok -> apply_events(agg, events)
+          {:error, :retry_command} ->
+            agg
+            |> update_aggregate()
+            |> handle_command(command)
+        end
+      end
+
+      defp create_aggregate(id) do
+        %Aggregate{id: id, sequence: 0, state: initial_state()}
+      end
+
+      defp to_snapshot(%{id: i, state: s, sequence: n}),
+        do: %Snapshot{aggregate_id: i, body: prepare_snapshot(s), sequence: n}
+
+      defp at_sequence(agg, sequence) do
+        agg.id
+        |> create_aggregate
+        |> update_aggregate(sequence)
+        |> Map.get(:state)
+      end
+
+      defp update_aggregate(agg, max_seq \\ Store.max_sequence) do
+        agg = case Store.get_snapshot(
+                    agg.id,
+                    agg.sequence,
+                    max_sequence: max_seq
+                  ) do
+                nil -> agg
+                snap -> %{agg | state: use_snapshot(agg, snap),
+                         sequence: snap.sequence}
+              end
+        events = Store.get_events(agg.id, agg.sequence, max_sequence: max_seq)
+        apply_events(agg, events)
+      end
 
       defp max_seq([]), do: nil
       defp max_seq(events) do
@@ -108,8 +161,15 @@ defmodule EventStore.Aggregate do
         end)
       end
 
-      def apply_events(state, events) do
-        Enum.reduce(events, state, &apply_event/2)
+      defp apply_events(agg, []), do: agg
+      defp apply_events(agg, events) do
+        new_state = Enum.reduce(
+          events,
+          agg.state,
+          fn (event, state) -> apply_event(state, event) end
+        )
+
+        %{agg | state: new_state, sequence: max_seq(events)}
       end
 
       def call(agg_id, msg) do
@@ -119,7 +179,21 @@ defmodule EventStore.Aggregate do
       end
 
       def whereis(agg_id) do
-        EventStore.Aggregate.Supervisor.get_child(agg_id)
+        EventStore.Aggregate.Supervisor.get_child(agg_id, __MODULE__)
+      end
+
+      @doc """
+      Commands suppose an `aggregate_id`. This means that aggregates will need
+      to be able to generate an ID and an initial state before accepting
+      commands.
+      """
+      def new do
+        with {:ok, agg_id} <- HLClock.now() do
+          pid =
+            agg_id
+            |> whereis
+          {:ok, pid, agg_id}
+        end
       end
     end
   end
@@ -130,6 +204,12 @@ defmodule EventStore.Aggregate do
         name = {:via, Registry, {EventStore.Aggregate.Registry, agg_id}}
         GenServer.start_link(__MODULE__, agg_id, name: name)
       end
+
+      def eval_command(_, _), do: {:error, :unrecognized_command}
+
+      # provide a base case for handle_info after the fact, so users can extend
+      # handle_info on their own
+      def handle_info(_msg, state), do: {:noreply, state}
     end
   end
 end

@@ -20,7 +20,7 @@ defmodule EventStore.StoreTest do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
   end
 
-  describe "commit_events!/1" do
+  describe "commit_events/1" do
     property "no conflict events are committed" do
       check all agg_id <- timestamp(),
         times          <- uniq_list_of(
@@ -31,7 +31,7 @@ defmodule EventStore.StoreTest do
         times
         |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
-        |> Store.commit_events!()
+        |> Store.commit_events()
 
         assert Enum.count(times) == num_events(agg_id)
       end
@@ -45,13 +45,13 @@ defmodule EventStore.StoreTest do
         times
         |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
-        |> Store.commit_events!()
+        |> Store.commit_events()
 
         e = to_event({ts0, 1}, agg_id)
         {:error, reason} =
           e
           |> List.wrap()
-          |> Store.commit_events!()
+          |> Store.commit_events()
 
         assert reason == :retry_command
       end
@@ -66,7 +66,7 @@ defmodule EventStore.StoreTest do
         times
         |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
-        |> Store.commit_events!()
+        |> Store.commit_events()
 
         assert [] == Store.get_events(agg_id, Enum.count(times) + 1)
       end
@@ -81,7 +81,7 @@ defmodule EventStore.StoreTest do
         times
         |> Enum.with_index(1)
         |> Enum.map(&(to_event(&1, agg_id)))
-        |> Store.commit_events!()
+        |> Store.commit_events()
 
         seq = times
         |> Enum.with_index(1)
