@@ -13,7 +13,7 @@ defmodule EventStore.AggregateTest do
       EventStore.Store.InMemory
     )
     EventStore.Store.InMemory.reset
-    HLClock.start_link
+    HLClock.Server.start_link
     :ok
   end
 
