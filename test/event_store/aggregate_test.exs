@@ -28,6 +28,9 @@ defmodule EventStore.AggregateTest do
 
         value = SampleAggregate.call(agg_id, :get_state)
         assert value == (increments(coms) - decrements(coms))
+
+        {:ok, value} = SampleAggregate.call(agg_id, :fetch_state)
+        assert value == (increments(coms) - decrements(coms))
       end
     end
 
