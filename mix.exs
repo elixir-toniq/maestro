@@ -37,7 +37,6 @@ defmodule EventStore.Mixfile do
       {:poison, "~> 3.0"},
       {:ecto_hlclock, git: "git@github.com:tonic-sys/ecto_hlclock.git"},
       {:credo, "~> 0.5", only: [:dev, :test]},
-      {:dogma, "~> 0.1", only: [:dev]},
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:benchee, "~> 0.9", only: :dev}
