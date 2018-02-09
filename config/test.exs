@@ -4,10 +4,10 @@ use Mix.Config
 config :logger, level: :warn
 
 # Configure your database
-config :event_store, EventStore.Repo,
+config :maestro, Maestro.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
-  database: "event_store_test",
+  database: "maestro_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox

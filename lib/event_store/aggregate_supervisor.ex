@@ -1,4 +1,4 @@
-defmodule EventStore.AggregateSupervisor do
+defmodule Maestro.AggregateSupervisor do
   @moduledoc """
   Simple supervisor that ensures that should the registry or the aggregate
   supervisor go down, things are brought back up cleanly.
@@ -12,8 +12,8 @@ defmodule EventStore.AggregateSupervisor do
 
   def init(_args) do
     children = [
-      {Registry, keys: :unique, name: EventStore.Aggregate.Registry},
-      {EventStore.Aggregate.Supervisor, []},
+      {Registry, keys: :unique, name: Maestro.Aggregate.Registry},
+      {Maestro.Aggregate.Supervisor, []},
     ]
 
     opts = [strategy: :one_for_all]

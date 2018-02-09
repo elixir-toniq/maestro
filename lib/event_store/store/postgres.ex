@@ -1,4 +1,4 @@
-defmodule EventStore.Store.Postgres do
+defmodule Maestro.Store.Postgres do
   @moduledoc """
   Ecto+Postgres implementation of the storage mechanism.
 
@@ -6,14 +6,14 @@ defmodule EventStore.Store.Postgres do
   implementation doesn't support retrieval without an aggregate ID.
   """
 
-  @behaviour EventStore.Store.Adapter
+  @behaviour Maestro.Store.Adapter
 
   import Ecto.Query
 
   alias Ecto.Multi
 
-  alias EventStore.Repo
-  alias EventStore.Schemas.{Event, Snapshot}
+  alias Maestro.Repo
+  alias Maestro.Schemas.{Event, Snapshot}
 
   def commit_events(events) do
     events

@@ -1,4 +1,4 @@
-defmodule EventStore.Store do
+defmodule Maestro.Store do
   @moduledoc """
   Concise API for events and snapshots. Requires a Repo to operate.
   """
@@ -31,7 +31,7 @@ defmodule EventStore.Store do
 
   defp adapter do
     Application.get_env(
-      :event_store, :storage_adapter, EventStore.Store.InMemory)
+      :maestro, :storage_adapter, Maestro.Store.InMemory)
   end
 
   def max_sequence, do: @default_options[:max_sequence]

@@ -1,4 +1,4 @@
-defmodule EventStore.StoreTest do
+defmodule Maestro.StoreTest do
   use ExUnit.Case, async: false
 
   import StreamData
@@ -6,16 +6,16 @@ defmodule EventStore.StoreTest do
 
   import Ecto.Query
 
-  import EventStore.Generators
+  import Maestro.Generators
 
-  alias EventStore.{Repo, Store}
-  alias EventStore.Schemas.Event
+  alias Maestro.{Repo, Store}
+  alias Maestro.Schemas.Event
 
   setup do
     Application.put_env(
-      :event_store,
+      :maestro,
       :storage_adapter,
-      EventStore.Store.Postgres
+      Maestro.Store.Postgres
     )
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
   end
@@ -109,7 +109,7 @@ defmodule EventStore.StoreTest do
         |> Store.commit_snapshot()
 
         in_db = Repo.one(
-          from s in EventStore.Schemas.Snapshot,
+          from s in Maestro.Schemas.Snapshot,
           where: s.aggregate_id == ^agg_id,
           select: s
         )
@@ -133,7 +133,7 @@ defmodule EventStore.StoreTest do
 
         case Store.get_snapshot(agg_id, seq1) do
           nil -> assert seq1 > seq0
-          %EventStore.Schemas.Snapshot{} = _snap -> assert seq1 < seq0
+          %Maestro.Schemas.Snapshot{} = _snap -> assert seq1 < seq0
         end
       end
     end
@@ -146,12 +146,12 @@ defmodule EventStore.StoreTest do
   end
 
   def to_snapshot(agg_id, seq, body \\ %{}),
-    do: %EventStore.Schemas.Snapshot{aggregate_id: agg_id,
+    do: %Maestro.Schemas.Snapshot{aggregate_id: agg_id,
                                      sequence: seq,
                                      body: body}
 
   def to_event({ts, seq}, agg_id, body \\ %{}),
-    do: %EventStore.Schemas.Event{timestamp: ts,
+    do: %Maestro.Schemas.Event{timestamp: ts,
                                   aggregate_id: agg_id,
                                   sequence: seq,
                                   body: body}

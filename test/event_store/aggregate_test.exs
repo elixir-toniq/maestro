@@ -1,18 +1,18 @@
-defmodule EventStore.AggregateTest do
+defmodule Maestro.AggregateTest do
   use ExUnit.Case
   import ExUnitProperties
-  import EventStore.Generators
+  import Maestro.Generators
 
-  alias EventStore.Command
-  alias EventStore.SampleAggregate
+  alias Maestro.Command
+  alias Maestro.SampleAggregate
 
   setup do
     Application.put_env(
-      :event_store,
+      :maestro,
       :storage_adapter,
-      EventStore.Store.InMemory
+      Maestro.Store.InMemory
     )
-    EventStore.Store.InMemory.reset
+    Maestro.Store.InMemory.reset
     HLClock.Server.start_link
     :ok
   end
@@ -50,7 +50,7 @@ defmodule EventStore.AggregateTest do
                              data: %{}})
 
       snapshot = SampleAggregate.call(agg_id, :get_snapshot)
-      EventStore.Store.commit_snapshot(snapshot)
+      Maestro.Store.commit_snapshot(snapshot)
 
       GenServer.stop(pid)
 

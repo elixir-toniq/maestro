@@ -1,5 +1,5 @@
-defmodule EventStore.Repo do
-  use Ecto.Repo, otp_app: :event_store
+defmodule Maestro.Repo do
+  use Ecto.Repo, otp_app: :maestro
 
   @doc """
   Dynamically loads the repository url from the

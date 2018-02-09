@@ -1,4 +1,4 @@
-defmodule EventStore.Schemas.Snapshot do
+defmodule Maestro.Schemas.Snapshot do
   @moduledoc """
   aggregate roots can commit state that has been computed from the application
   of events. this is useful if events are expensive to apply or if there are a

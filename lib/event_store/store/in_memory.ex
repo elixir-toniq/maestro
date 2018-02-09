@@ -1,9 +1,9 @@
-defmodule EventStore.Store.InMemory do
+defmodule Maestro.Store.InMemory do
   @moduledoc """
   Agent-based implementation of the event/snapshot storage mechanism
   """
 
-  @behaviour EventStore.Store.Adapter
+  @behaviour Maestro.Store.Adapter
 
   use Agent
 

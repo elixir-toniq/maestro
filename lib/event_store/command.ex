@@ -1,7 +1,7 @@
-defmodule EventStore.Command do
+defmodule Maestro.Command do
   @moduledoc """
   Commands are the primary way clients express a desire to change the system. In
-  EventStore, commands are always executed within the context of an aggregate in
+  Maestro, commands are always executed within the context of an aggregate in
   a consistent manner.
 
   In order to assist the system in promptly processing commands, clients can

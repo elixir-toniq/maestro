@@ -1,4 +1,4 @@
-defmodule EventStore.Application do
+defmodule Maestro.Application do
   @moduledoc false
 
   use Application
@@ -9,12 +9,12 @@ defmodule EventStore.Application do
     import Supervisor.Spec
 
     children = [
-      supervisor(EventStore.Repo, []),
-      worker(EventStore.Store.InMemory, []),
-      {EventStore.AggregateSupervisor, []},
+      supervisor(Maestro.Repo, []),
+      worker(Maestro.Store.InMemory, []),
+      {Maestro.AggregateSupervisor, []},
     ]
 
-    opts = [strategy: :one_for_one, name: EventStore.Supervisor]
+    opts = [strategy: :one_for_one, name: Maestro.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end

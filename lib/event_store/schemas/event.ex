@@ -1,4 +1,4 @@
-defmodule EventStore.Schemas.Event do
+defmodule Maestro.Schemas.Event do
   @moduledoc """
   Events are the building block of our society. Behave accordingly
   """

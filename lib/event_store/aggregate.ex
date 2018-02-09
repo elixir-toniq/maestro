@@ -1,4 +1,4 @@
-defmodule EventStore.Aggregate do
+defmodule Maestro.Aggregate do
   @moduledoc """
   Traditional domain entities are referred to as aggregates in the literature.
   The goal of this library is to greatly simplify the process of implementing a
@@ -18,9 +18,9 @@ defmodule EventStore.Aggregate do
   """
 
   alias __MODULE__
-  alias EventStore.Command
-  alias EventStore.Store
-  alias EventStore.Schemas.{Event, Snapshot}
+  alias Maestro.Command
+  alias Maestro.Store
+  alias Maestro.Schemas.{Event, Snapshot}
 
   defstruct [:id, :sequence, :state]
   @type t :: %__MODULE__{
@@ -188,7 +188,7 @@ defmodule EventStore.Aggregate do
       end
 
       def whereis(agg_id) do
-        EventStore.Aggregate.Supervisor.get_child(agg_id, __MODULE__)
+        Maestro.Aggregate.Supervisor.get_child(agg_id, __MODULE__)
       end
 
       @doc """
@@ -210,7 +210,7 @@ defmodule EventStore.Aggregate do
   defmacro __before_compile__(_) do
     quote do
       def start_link(agg_id) do
-        name = {:via, Registry, {EventStore.Aggregate.Registry, agg_id}}
+        name = {:via, Registry, {Maestro.Aggregate.Registry, agg_id}}
         GenServer.start_link(__MODULE__, agg_id, name: name)
       end
 

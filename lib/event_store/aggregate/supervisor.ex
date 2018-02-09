@@ -1,4 +1,4 @@
-defmodule EventStore.Aggregate.Supervisor do
+defmodule Maestro.Aggregate.Supervisor do
   @moduledoc """
   All aggregate roots, no matter how many different kinds you may have, are
   managed by a single supervisor/registry (for now). Given that aggregates are
@@ -9,7 +9,7 @@ defmodule EventStore.Aggregate.Supervisor do
 
   use Supervisor
 
-  alias EventStore.Aggregate
+  alias Maestro.Aggregate
 
   def start_link(args) do
     Supervisor.start_link(__MODULE__, args, name: __MODULE__)

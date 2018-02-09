@@ -6,8 +6,8 @@
 use Mix.Config
 
 # General application configuration
-config :event_store,
-  ecto_repos: [EventStore.Repo],
+config :maestro,
+  ecto_repos: [Maestro.Repo],
   generators: [binary_id: true]
 
 # Configures Elixir's Logger

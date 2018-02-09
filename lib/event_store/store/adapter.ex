@@ -1,8 +1,8 @@
-defmodule EventStore.Store.Adapter do
+defmodule Maestro.Store.Adapter do
   @moduledoc """
   Defines the minimal API for a well-behaved storage implementation.
   """
-  alias EventStore.Schemas.{Event, Snapshot}
+  alias Maestro.Schemas.{Event, Snapshot}
 
   @type id :: Event.aggregate_id
 

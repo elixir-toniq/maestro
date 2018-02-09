@@ -1,10 +1,10 @@
-defmodule EventStore.SampleAggregate do
+defmodule Maestro.SampleAggregate do
   @moduledoc """
   Test implementation of an Aggregate behaviour
   """
 
-  use EventStore.Aggregate
-  alias EventStore.Schemas.Event
+  use Maestro.Aggregate
+  alias Maestro.Schemas.Event
 
   alias HLClock
 

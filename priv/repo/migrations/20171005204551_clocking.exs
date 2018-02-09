@@ -1,4 +1,4 @@
-defmodule EventStore.Repo.Migrations.Clocking do
+defmodule Maestro.Repo.Migrations.Clocking do
   use Ecto.Migration
 
   def change do

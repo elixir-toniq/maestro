@@ -1,4 +1,4 @@
-defmodule EventStore.Generators do
+defmodule Maestro.Generators do
   @moduledoc """
   Property testing utilities including:
     * HLC Timestamp generator
@@ -53,7 +53,7 @@ defmodule EventStore.Generators do
   end
 
   def to_command({true, seq}, agg_id) do
-    %EventStore.Command{
+    %Maestro.Command{
       type: "increment",
       sequence: seq,
       aggregate_id: agg_id,
@@ -62,7 +62,7 @@ defmodule EventStore.Generators do
   end
 
   def to_command({false, seq}, agg_id) do
-    %EventStore.Command{
+    %Maestro.Command{
       type: "decrement",
       sequence: seq,
       aggregate_id: agg_id,
