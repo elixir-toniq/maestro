@@ -68,6 +68,7 @@ defmodule EventStore.Store.Postgres do
       select: r
   end
 
+  defp insert_events([]), do: :ok
   defp insert_events(changesets) do
     changesets
     |> Enum.reduce(Multi.new, &append_changeset/2)
