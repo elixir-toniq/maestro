@@ -6,7 +6,7 @@ defmodule Maestro.Mixfile do
   def project do
     [
       app: :maestro,
-      version: "0.0.2",
+      version: "0.0.1",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -64,7 +64,7 @@ defmodule Maestro.Mixfile do
   defp package do
     [
       name: :maestro,
-      files: ["lib", "mix.exs", "README.md"],
+      files: ["lib", "mix.exs", "README.md", "priv"],
       maintainers: ["Neil Menne", "Chris Keathley", "Brent Spell"],
       licenses: ["MIT"],
       links: %{
