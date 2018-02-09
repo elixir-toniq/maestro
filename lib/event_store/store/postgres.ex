@@ -39,14 +39,14 @@ defmodule EventStore.Store.Postgres do
   end
 
   def get_events(aggregate_id, min_seq, %{max_sequence: max_seq}) do
-    event_query
+    event_query()
     |> bounded_sequence(min_seq, max_seq)
     |> for_aggregate(aggregate_id)
     |> Repo.all()
   end
 
   def get_snapshot(aggregate_id, min_seq, %{max_sequence: max_seq}) do
-    snapshot_query
+    snapshot_query()
     |> bounded_sequence(min_seq, max_seq)
     |> for_aggregate(aggregate_id)
     |> Repo.one()
@@ -68,6 +68,7 @@ defmodule EventStore.Store.Postgres do
       select: r
   end
 
+  defp insert_events([]), do: :ok
   defp insert_events(changesets) do
     changesets
     |> Enum.reduce(Multi.new, &append_changeset/2)

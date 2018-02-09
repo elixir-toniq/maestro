@@ -11,7 +11,7 @@ defmodule EventStore.Generators do
 
   @max_node_size 18_446_744_073_709_551_615
   @max_counter_size 65_535
-  @max_time_size 281_474_976_710_655
+  @max_time_size 2_147_483_647
 
   def int_of_size(size) do
     bind(bitstring(length: size), fn(<<n :: integer-size(size)>>) ->

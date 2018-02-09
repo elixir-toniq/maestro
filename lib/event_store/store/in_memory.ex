@@ -16,7 +16,7 @@ defmodule EventStore.Store.InMemory do
     )
   end
 
-  def commit_events([]), do: []
+  def commit_events([]), do: :ok
   def commit_events(events) do
     Agent.get_and_update(__MODULE__, &update_events(&1, events))
   end

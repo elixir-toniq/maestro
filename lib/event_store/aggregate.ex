@@ -90,12 +90,21 @@ defmodule EventStore.Aggregate do
         {:reply, at_sequence(agg, seq), agg}
       end
 
+      def handle_call(:fetch_state, _from, agg) do
+        agg = update_aggregate(agg)
+        {:reply, {:ok, agg.state}, agg}
+      rescue
+        e -> {:reply, {:error, e, System.stacktrace()}, agg}
+      end
+
       def handle_call(:get_snapshot, _from, agg) do
         {:reply, to_snapshot(agg), agg}
       end
 
       def handle_call({:eval_command, command}, _from, agg) do
         {:reply, :ok, handle_command(agg, command)}
+      rescue
+        e -> {:reply, {:error, e, System.stacktrace()}, agg}
       end
 
       def handle_info(:initialize, agg), do: {:noreply, update_aggregate(agg)}

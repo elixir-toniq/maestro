@@ -13,7 +13,7 @@ defmodule EventStore.AggregateTest do
       EventStore.Store.InMemory
     )
     EventStore.Store.InMemory.reset
-    HLClock.start_link
+    HLClock.Server.start_link
     :ok
   end
 
@@ -27,6 +27,9 @@ defmodule EventStore.AggregateTest do
         end
 
         value = SampleAggregate.call(agg_id, :get_state)
+        assert value == (increments(coms) - decrements(coms))
+
+        {:ok, value} = SampleAggregate.call(agg_id, :fetch_state)
         assert value == (increments(coms) - decrements(coms))
       end
     end
