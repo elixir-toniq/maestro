@@ -7,7 +7,7 @@ defmodule Maestro.Store.InMemory do
 
   use Agent
 
-  defstruct [events: %{}, snapshots: %{}]
+  defstruct events: %{}, snapshots: %{}
 
   def start_link do
     Agent.start_link(
@@ -17,6 +17,7 @@ defmodule Maestro.Store.InMemory do
   end
 
   def commit_events([]), do: :ok
+
   def commit_events(events) do
     Agent.get_and_update(__MODULE__, &update_events(&1, events))
   end
@@ -37,16 +38,18 @@ defmodule Maestro.Store.InMemory do
 
   defp update_events(%{events: all_events} = state, new_events) do
     aid = new_events |> List.first() |> aggregate_id()
-    old_events  = Map.get(all_events, aid, [])
+    old_events = Map.get(all_events, aid, [])
 
     if overlapping?(old_events, new_events) do
       {{:error, :retry_command}, state}
     else
-      all_events = Map.put(
-        all_events,
-        aid,
-        old_events ++ new_events
-      )
+      all_events =
+        Map.put(
+          all_events,
+          aid,
+          old_events ++ new_events
+        )
+
       {:ok, %{state | events: all_events}}
     end
   end
@@ -54,6 +57,7 @@ defmodule Maestro.Store.InMemory do
   defp update_snapshot(%{snapshots: snaps} = state, new_snap) do
     aid = aggregate_id(new_snap)
     prev_snap = Map.get(snaps, aid, %{sequence: -1})
+
     if prev_snap.sequence > new_snap.sequence do
       {:ok, state}
     else
@@ -64,11 +68,12 @@ defmodule Maestro.Store.InMemory do
   defp return_events(%{events: events}, id, min_seq, max_seq) do
     events
     |> Map.get(id, [])
-    |> Enum.filter(&(in_range?(&1, min_seq, max_seq)))
+    |> Enum.filter(&in_range?(&1, min_seq, max_seq))
   end
 
   defp return_snapshot(%{snapshots: snaps}, id, min_seq, max_seq) do
     snap = snaps |> Map.get(id, %{sequence: -1})
+
     if in_range?(snap, min_seq, max_seq) do
       snap
     else

@@ -11,11 +11,11 @@ defmodule Maestro.Command do
   """
 
   @type t :: %__MODULE__{
-    type: String.t(),
-    aggregate_id: HLClock.Timestamp.t(),
-    sequence: integer(),
-    data: map()
-  }
+          type: String.t(),
+          aggregate_id: HLClock.Timestamp.t(),
+          sequence: integer(),
+          data: map()
+        }
 
   defstruct [:type, :aggregate_id, sequence: 0, data: %{}]
 end

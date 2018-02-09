@@ -12,23 +12,27 @@ defmodule Maestro.SampleAggregate do
 
   def eval_command(curr, %{type: "increment"}) do
     with {:ok, ts} <- HLClock.now() do
-      [%Event{
+      [
+        %Event{
           timestamp: ts,
           aggregate_id: curr.id,
           sequence: curr.sequence + 1,
           body: %{"message" => "increment"}
-       }]
+        }
+      ]
     end
   end
 
   def eval_command(curr, %{type: "decrement"}) do
     with {:ok, ts} <- HLClock.now() do
-      [%Event{
+      [
+        %Event{
           timestamp: ts,
           aggregate_id: curr.id,
           sequence: curr.sequence + 1,
           body: %{"message" => "decrement"}
-       }]
+        }
+      ]
     end
   end
 

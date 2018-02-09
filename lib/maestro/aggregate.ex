@@ -23,19 +23,20 @@ defmodule Maestro.Aggregate do
   alias Maestro.Schemas.{Event, Snapshot}
 
   defstruct [:id, :sequence, :state]
+
   @type t :: %__MODULE__{
-    id: HLClock.Timestamp.t,
-    sequence: integer,
-    state: any
-  }
+          id: HLClock.Timestamp.t(),
+          sequence: integer,
+          state: any
+        }
 
   @type agg :: t
 
   @callback initial_state() :: any
-  @callback eval_command(agg, command :: Command.t) :: [Event.t]
-  @callback apply_event(agg, event :: Event.t) :: any
+  @callback eval_command(agg, command :: Command.t()) :: [Event.t()]
+  @callback apply_event(agg, event :: Event.t()) :: any
   @callback prepare_snapshot(agg) :: map
-  @callback use_snapshot(agg, snapshot :: Snapshot.t) :: any
+  @callback use_snapshot(agg, snapshot :: Snapshot.t()) :: any
   @optional_callbacks initial_state: 0, prepare_snapshot: 1, use_snapshot: 2
 
   def child_spec(opts) do
@@ -71,13 +72,11 @@ defmodule Maestro.Aggregate do
 
       def use_snapshot(_, snapshot), do: snapshot.body
 
-      defoverridable [
-        initial_state: 0,
-        eval_command: 2,
-        apply_event: 2,
-        prepare_snapshot: 1,
-        use_snapshot: 2
-      ]
+      defoverridable initial_state: 0,
+                     eval_command: 2,
+                     apply_event: 2,
+                     prepare_snapshot: 1,
+                     use_snapshot: 2
 
       def init(%HLClock.Timestamp{} = id) do
         send(self(), :initialize)
@@ -110,20 +109,23 @@ defmodule Maestro.Aggregate do
       def handle_info(:initialize, agg), do: {:noreply, update_aggregate(agg)}
 
       defp handle_command(agg, com) do
-        with agg                   <- command_update(agg, com),
+        with agg <- command_update(agg, com),
              evs when is_list(evs) <- eval_command(agg, com),
-               %Aggregate{} = agg  <- handle_events(agg, com, evs) do
+             %Aggregate{} = agg <- handle_events(agg, com, evs) do
           agg
         end
       end
 
       defp command_update(%{sequence: a} = agg, %{sequence: c}) when c > a,
         do: update_aggregate(agg)
+
       defp command_update(agg, _), do: agg
 
       def handle_events(agg, command, events) do
         case Store.commit_events(events) do
-          :ok -> apply_events(agg, events)
+          :ok ->
+            apply_events(agg, events)
+
           {:error, :retry_command} ->
             agg
             |> update_aggregate()
@@ -145,24 +147,29 @@ defmodule Maestro.Aggregate do
         |> Map.get(:state)
       end
 
-      defp update_aggregate(agg, max_seq \\ Store.max_sequence) do
-        agg = case Store.get_snapshot(
-                    agg.id,
-                    agg.sequence,
-                    max_sequence: max_seq
-                  ) do
-                nil -> agg
-                snap -> %{agg | state: use_snapshot(agg, snap),
-                         sequence: snap.sequence}
-              end
+      defp update_aggregate(agg, max_seq \\ Store.max_sequence()) do
+        agg =
+          case Store.get_snapshot(
+                 agg.id,
+                 agg.sequence,
+                 max_sequence: max_seq
+               ) do
+            nil ->
+              agg
+
+            snap ->
+              %{agg | state: use_snapshot(agg, snap), sequence: snap.sequence}
+          end
+
         events = Store.get_events(agg.id, agg.sequence, max_sequence: max_seq)
         apply_events(agg, events)
       end
 
       defp max_seq([]), do: nil
+
       defp max_seq(events) do
         events
-        |> Enum.reduce(0, fn (event, seq) ->
+        |> Enum.reduce(0, fn event, seq ->
           case event.sequence > seq do
             true -> event.sequence
             false -> seq
@@ -171,12 +178,12 @@ defmodule Maestro.Aggregate do
       end
 
       defp apply_events(agg, []), do: agg
+
       defp apply_events(agg, events) do
-        new_state = Enum.reduce(
-          events,
-          agg.state,
-          fn (event, state) -> apply_event(state, event) end
-        )
+        new_state =
+          Enum.reduce(events, agg.state, fn event, state ->
+            apply_event(state, event)
+          end)
 
         %{agg | state: new_state, sequence: max_seq(events)}
       end
@@ -201,6 +208,7 @@ defmodule Maestro.Aggregate do
           pid =
             agg_id
             |> whereis
+
           {:ok, pid, agg_id}
         end
       end

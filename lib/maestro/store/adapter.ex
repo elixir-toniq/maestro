@@ -4,9 +4,9 @@ defmodule Maestro.Store.Adapter do
   """
   alias Maestro.Schemas.{Event, Snapshot}
 
-  @type id :: Event.aggregate_id
+  @type id :: Event.aggregate_id()
 
-  @type seq :: Event.sequence
+  @type seq :: Event.sequence()
 
   @type options :: map
 
@@ -21,16 +21,17 @@ defmodule Maestro.Store.Adapter do
   for any other reason, the storage mechanism should raise an appropriate
   exception.
   """
-  @callback commit_events([Event.t]) :: :ok
-                                      | {:error, :retry_command}
-                                      | :no_return
+  @callback commit_events([Event.t()]) ::
+              :ok
+              | {:error, :retry_command}
+              | :no_return
 
   @doc """
   Snapshots are committed iff the proposed version is newer than the version
   already stored. This allows disconnected nodes to optimistically write their
   snapshots and still have a single version stored without conflicts.
   """
-  @callback commit_snapshot(Snapshot.t) :: :ok | :no_return
+  @callback commit_snapshot(Snapshot.t()) :: :ok | :no_return
 
   @doc """
   Events are retrieved by aggregate_id and with at least a minimum sequence
@@ -40,7 +41,7 @@ defmodule Maestro.Store.Adapter do
      * `:max_sequence` (integer): a hard upper limit on the sequence number.
        This is useful when attempting to recreate a past state of an aggregate.
   """
-  @callback get_events(id, seq, options) :: [Event.t]
+  @callback get_events(id, seq, options) :: [Event.t()]
 
   @doc """
   Snapshots can also be retrieved by aggregate_id and with at least a minimum
@@ -50,5 +51,5 @@ defmodule Maestro.Store.Adapter do
   * `:max_sequence` (integer): a hard upper limit on the sequence number.
   This is useful when attempting to recreate a past state of an aggregate.
   """
-  @callback get_snapshot(id, seq, options) :: nil | Snapshot.t
+  @callback get_snapshot(id, seq, options) :: nil | Snapshot.t()
 end

@@ -14,15 +14,15 @@ defmodule Maestro.Generators do
   @max_time_size 2_147_483_647
 
   def int_of_size(size) do
-    bind(bitstring(length: size), fn(<<n :: integer-size(size)>>) ->
+    bind(bitstring(length: size), fn <<n::integer-size(size)>> ->
       constant(n)
     end)
   end
 
   def timestamp do
     gen all time <- integer(0..max_time()),
-      counter <- integer(0..max_counter()),
-      node_id <- integer(0..max_node()) do
+            counter <- integer(0..max_counter()),
+            node_id <- integer(0..max_node()) do
       {:ok, timestamp} = Timestamp.new(time, counter, node_id)
       timestamp
     end
@@ -41,11 +41,13 @@ defmodule Maestro.Generators do
   def commands(agg_id, opts \\ []) do
     defaults = [max_commands: 10]
     [max_commands: max_commands] = Keyword.merge(defaults, opts)
-    gen all com_flags <- list_of(
-      boolean(),
-      max_length: max_commands,
-      min_length: 1) do
 
+    gen all com_flags <-
+              list_of(
+                boolean(),
+                max_length: max_commands,
+                min_length: 1
+              ) do
       com_flags
       |> Enum.with_index(1)
       |> Enum.map(&to_command(&1, agg_id))

@@ -13,7 +13,7 @@ defmodule Maestro.AggregateSupervisor do
   def init(_args) do
     children = [
       {Registry, keys: :unique, name: Maestro.Aggregate.Registry},
-      {Maestro.Aggregate.Supervisor, []},
+      {Maestro.Aggregate.Supervisor, []}
     ]
 
     opts = [strategy: :one_for_all]

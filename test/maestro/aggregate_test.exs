@@ -12,25 +12,25 @@ defmodule Maestro.AggregateTest do
       :storage_adapter,
       Maestro.Store.InMemory
     )
-    Maestro.Store.InMemory.reset
-    HLClock.Server.start_link
+
+    Maestro.Store.InMemory.reset()
+    HLClock.Server.start_link()
     :ok
   end
 
   describe "command/event lifecycle" do
     property "commands and events without snapshots" do
       check all agg_id <- timestamp(),
-        coms           <- commands(agg_id, max_commands: 200) do
-
+                coms <- commands(agg_id, max_commands: 200) do
         for com <- coms do
           apply_command(com)
         end
 
         value = SampleAggregate.call(agg_id, :get_state)
-        assert value == (increments(coms) - decrements(coms))
+        assert value == increments(coms) - decrements(coms)
 
         {:ok, value} = SampleAggregate.call(agg_id, :fetch_state)
-        assert value == (increments(coms) - decrements(coms))
+        assert value == increments(coms) - decrements(coms)
       end
     end
 
@@ -39,15 +39,19 @@ defmodule Maestro.AggregateTest do
 
       assert 0 == SampleAggregate.call(agg_id, :get_state)
 
-      apply_command(%Command{type: "increment",
-                             sequence: 1,
-                             aggregate_id: agg_id,
-                             data: %{}})
+      apply_command(%Command{
+        type: "increment",
+        sequence: 1,
+        aggregate_id: agg_id,
+        data: %{}
+      })
 
-      apply_command(%Command{type: "increment",
-                             sequence: 1,
-                             aggregate_id: agg_id,
-                             data: %{}})
+      apply_command(%Command{
+        type: "increment",
+        sequence: 1,
+        aggregate_id: agg_id,
+        data: %{}
+      })
 
       snapshot = SampleAggregate.call(agg_id, :get_snapshot)
       Maestro.Store.commit_snapshot(snapshot)
@@ -56,10 +60,12 @@ defmodule Maestro.AggregateTest do
 
       {:ok, _pid} = SampleAggregate.start_link(agg_id)
 
-      apply_command(%Command{type: "increment",
-                             sequence: 1,
-                             aggregate_id: agg_id,
-                             data: %{}})
+      apply_command(%Command{
+        type: "increment",
+        sequence: 1,
+        aggregate_id: agg_id,
+        data: %{}
+      })
 
       assert 3 = SampleAggregate.call(agg_id, :get_state)
     end
@@ -67,16 +73,18 @@ defmodule Maestro.AggregateTest do
     test "recover an intermediate state" do
       {:ok, _pid, agg_id} = SampleAggregate.new()
 
-      base_command = %Command{type: "increment",
-                              sequence: 1,
-                              aggregate_id: agg_id,
-                              data: %{}}
+      base_command = %Command{
+        type: "increment",
+        sequence: 1,
+        aggregate_id: agg_id,
+        data: %{}
+      }
 
       commands =
         base_command
         |> repeat(10)
         |> Enum.with_index(1)
-        |> Enum.map(fn ({c, i}) -> %{c | sequence: i} end)
+        |> Enum.map(fn {c, i} -> %{c | sequence: i} end)
 
       for com <- commands, do: apply_command(com)
 
@@ -86,7 +94,7 @@ defmodule Maestro.AggregateTest do
   end
 
   def repeat(val, times) do
-    Enum.map(0..(times - 1), fn (_) -> val end)
+    Enum.map(0..(times - 1), fn _ -> val end)
   end
 
   def apply_command(command) do
@@ -109,4 +117,3 @@ defmodule Maestro.AggregateTest do
 
   defp is_decrement(%{type: t}), do: t == "decrement"
 end
-

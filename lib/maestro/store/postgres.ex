@@ -16,24 +16,31 @@ defmodule Maestro.Store.Postgres do
   alias Maestro.Schemas.{Event, Snapshot}
 
   def commit_events(events) do
+    # ensure valid events are being passed
     events
-    |> Stream.map(&Event.changeset/1)  # ensure valid events are being passed
+    |> Stream.map(&Event.changeset/1)
     |> insert_events
   end
 
   def commit_snapshot(%Snapshot{} = s) do
     upstmt =
-      from s in Snapshot,
-      where: fragment("s0.sequence < excluded.sequence"),
-      update: [set: [sequence: fragment("excluded.sequence"),
-                     body: fragment("excluded.body")]]
+      from(
+        s in Snapshot,
+        where: fragment("s0.sequence < excluded.sequence"),
+        update: [
+          set: [
+            sequence: fragment("excluded.sequence"),
+            body: fragment("excluded.body")
+          ]
+        ]
+      )
 
     case Repo.insert_all(
-          Snapshot,
-          for_insert(s),
-          conflict_target: [:aggregate_id],
-          on_conflict: upstmt
-        ) do
+           Snapshot,
+           for_insert(s),
+           conflict_target: [:aggregate_id],
+           on_conflict: upstmt
+         ) do
       {x, _} when x >= 0 and x <= 1 -> :ok
     end
   end
@@ -52,36 +59,42 @@ defmodule Maestro.Store.Postgres do
     |> Repo.one()
   end
 
-  defp event_query, do: from e in Event
+  defp event_query, do: from(e in Event)
 
-  defp snapshot_query, do: from s in Snapshot
+  defp snapshot_query, do: from(s in Snapshot)
 
   defp bounded_sequence(query, min_seq, max_seq) do
-    from r in query,
+    from(
+      r in query,
       where: r.sequence > ^min_seq,
       where: r.sequence <= ^max_seq
+    )
   end
 
   defp for_aggregate(query, agg_id) do
-    from r in query,
+    from(
+      r in query,
       where: r.aggregate_id == ^agg_id,
       select: r
+    )
   end
 
   defp insert_events([]), do: :ok
+
   defp insert_events(changesets) do
     changesets
-    |> Enum.reduce(Multi.new, &append_changeset/2)
+    |> Enum.reduce(Multi.new(), &append_changeset/2)
     |> Repo.transaction()
     |> case do
-         {:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _} ->
-           {:error, :retry_command}
-         {:ok, _} -> :ok
-       end
+      {:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _} ->
+        {:error, :retry_command}
+
+      {:ok, _} ->
+        :ok
+    end
   end
 
-  defp append_changeset(cs, mult),
-    do: Multi.insert(mult, changeset_key(cs), cs)
+  defp append_changeset(cs, mult), do: Multi.insert(mult, changeset_key(cs), cs)
 
   defp changeset_key(cs) do
     "#{cs.data.aggregate_id}:#{cs.data.sequence}"

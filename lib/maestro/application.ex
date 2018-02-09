@@ -11,7 +11,7 @@ defmodule Maestro.Application do
     children = [
       supervisor(Maestro.Repo, []),
       worker(Maestro.Store.InMemory, []),
-      {Maestro.AggregateSupervisor, []},
+      {Maestro.AggregateSupervisor, []}
     ]
 
     opts = [strategy: :one_for_one, name: Maestro.Supervisor]
