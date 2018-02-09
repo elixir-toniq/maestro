@@ -42,7 +42,8 @@ defmodule Maestro.Mixfile do
       {:credo, "~> 0.5", only: [:dev, :test]},
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
-      {:benchee, "~> 0.9", only: :dev}
+      {:benchee, "~> 0.9", only: :dev},
+      {:ex_doc, "~> 0.16", only: :dev}
     ]
   end
 
