@@ -12,6 +12,7 @@ defmodule Maestro.Mixfile do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       package: package(),
+      description: description(),
       deps: deps(),
       name: "Maestro",
       source_url: @source_url,
@@ -43,6 +44,12 @@ defmodule Maestro.Mixfile do
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:benchee, "~> 0.9", only: :dev}
     ]
+  end
+
+  defp description do
+    """
+    Maestro: CQRS & event storage
+    """
   end
 
   defp aliases do
