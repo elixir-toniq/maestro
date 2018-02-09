@@ -1,4 +1,4 @@
-# EventStore
+# Maestro
 
 To start your Phoenix server:
 
