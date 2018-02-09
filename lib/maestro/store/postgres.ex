@@ -18,8 +18,8 @@ defmodule Maestro.Store.Postgres do
   def commit_events(events) do
     # ensure valid events are being passed
     events
-    |> Stream.map(&Event.changeset/1)
-    |> insert_events
+    |> Enum.map(&Event.changeset/1)
+    |> insert_events()
   end
 
   def commit_snapshot(%Snapshot{} = s) do

@@ -7,28 +7,24 @@ defmodule Maestro.Aggregate.Supervisor do
   timestamps and are thus unique even across aggregates.
   """
 
-  use Supervisor
+  use DynamicSupervisor
 
   alias Maestro.Aggregate
 
   def start_link(args) do
-    Supervisor.start_link(__MODULE__, args, name: __MODULE__)
+    DynamicSupervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def get_child(key, module) do
-    case Supervisor.start_child(__MODULE__, [key, module]) do
+  def get_child(key, mod) do
+    spec = {Aggregate, aggregate_id: key, module: mod}
+
+    case DynamicSupervisor.start_child(__MODULE__, spec) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
     end
   end
 
   def init(_args) do
-    child =
-      Supervisor.child_spec(
-        Aggregate,
-        start: {Aggregate, :start_link, []}
-      )
-
-    Supervisor.init([child], strategy: :simple_one_for_one)
+    DynamicSupervisor.init(strategy: :one_for_one)
   end
 end

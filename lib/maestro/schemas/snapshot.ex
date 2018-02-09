@@ -11,6 +11,16 @@ defmodule Maestro.Schemas.Snapshot do
 
   use Ecto.Schema
 
+  @type sequence :: integer()
+
+  @type aggregate_id :: HLClock.Timestamp.t()
+
+  @type t :: %__MODULE__{
+          aggregate_id: aggregate_id(),
+          sequence: sequence(),
+          body: map()
+        }
+
   @primary_key false
   schema "snapshots" do
     field(:aggregate_id, Ecto.HLClock, primary_key: true)

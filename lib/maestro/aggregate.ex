@@ -49,8 +49,10 @@ defmodule Maestro.Aggregate do
     }
   end
 
-  def start_link(agg_id, module_name) do
-    module_name.start_link(agg_id)
+  def start_link(opts) do
+    mod = Keyword.get(opts, :module)
+    id = Keyword.get(opts, :aggregate_id)
+    mod.start_link(id)
   end
 
   defmacro __using__(_) do

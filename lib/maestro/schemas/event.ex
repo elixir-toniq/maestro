@@ -11,10 +11,10 @@ defmodule Maestro.Schemas.Event do
 
   @type sequence :: integer()
 
-  @type aggregate_id :: HLClock.t()
+  @type aggregate_id :: HLClock.Timestamp.t()
 
   @type t :: %__MODULE__{
-          timestamp: HLClock.t(),
+          timestamp: HLClock.Timestamp.t(),
           aggregate_id: aggregate_id(),
           sequence: sequence(),
           body: map()
