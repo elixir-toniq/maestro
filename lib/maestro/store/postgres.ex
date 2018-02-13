@@ -48,6 +48,7 @@ defmodule Maestro.Store.Postgres do
   def get_events(aggregate_id, min_seq, %{max_sequence: max_seq}) do
     event_query()
     |> bounded_sequence(min_seq, max_seq)
+    |> ordered()
     |> for_aggregate(aggregate_id)
     |> Repo.all()
   end
@@ -76,6 +77,13 @@ defmodule Maestro.Store.Postgres do
       r in query,
       where: r.aggregate_id == ^agg_id,
       select: r
+    )
+  end
+
+  defp ordered(query) do
+    from(
+      r in query,
+      order_by: r.timestamp
     )
   end
 
