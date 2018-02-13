@@ -1,12 +1,13 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
+  @version "0.0.3"
   @source_url "https://github.com/toniqsystems/maestro"
 
   def project do
     [
       app: :maestro,
-      version: "0.0.1",
+      version: @version,
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
