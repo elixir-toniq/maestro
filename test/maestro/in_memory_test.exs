@@ -1,17 +1,27 @@
-defmodule Maestro.Store.InMemoryTest do
+defmodule Maestro.InMemoryTest do
   use ExUnit.Case, async: false
   import StreamData
   import ExUnitProperties
   import Maestro.Generators
 
   alias Maestro.Store
+  alias Maestro.Store.InMemory
+  alias Maestro.Types.{Event, Snapshot}
 
-  setup do
+  setup_all do
     Application.put_env(
       :maestro,
       :storage_adapter,
       Maestro.Store.InMemory
     )
+
+    {:ok, pid} = InMemory.start_link()
+
+    on_exit(fn ->
+      Process.exit(pid, :normal)
+    end)
+
+    :ok
   end
 
   describe "commit_events/1" do
@@ -23,7 +33,7 @@ defmodule Maestro.Store.InMemoryTest do
                     min_length: 1,
                     max_length: 10
                   ) do
-        Maestro.Store.InMemory.reset()
+        InMemory.reset()
 
         times
         |> Enum.with_index(1)
@@ -40,7 +50,7 @@ defmodule Maestro.Store.InMemoryTest do
       check all agg_id <- timestamp(),
                 ts0 <- timestamp(),
                 times <- uniq_list_of(timestamp(), min_length: 1) do
-        Maestro.Store.InMemory.reset()
+        InMemory.reset()
 
         times
         |> Enum.with_index(1)
@@ -63,7 +73,7 @@ defmodule Maestro.Store.InMemoryTest do
     property "returns empty list when no relevant events exist" do
       check all agg_id <- timestamp(),
                 times <- uniq_list_of(timestamp()) do
-        Maestro.Store.InMemory.reset()
+        InMemory.reset()
 
         times
         |> Enum.with_index(1)
@@ -77,7 +87,7 @@ defmodule Maestro.Store.InMemoryTest do
     property "returns events otherwise" do
       check all agg_id <- timestamp(),
                 times <- uniq_list_of(timestamp(), min_length: 1) do
-        Maestro.Store.InMemory.reset()
+        InMemory.reset()
 
         total = Enum.count(times)
 
@@ -103,7 +113,7 @@ defmodule Maestro.Store.InMemoryTest do
     property "commits if newer" do
       check all agg_id <- timestamp(),
                 [seq0, seq1] <- uniq_list_of(integer(1..100_000), length: 2) do
-        Maestro.Store.InMemory.reset()
+        InMemory.reset()
 
         agg_id
         |> to_snapshot(seq0, %{"seq" => seq0})
@@ -123,7 +133,7 @@ defmodule Maestro.Store.InMemoryTest do
     property "retrieve if newer" do
       check all agg_id <- timestamp(),
                 [seq0, seq1] <- uniq_list_of(integer(1..100_000), length: 2) do
-        Maestro.Store.InMemory.reset()
+        InMemory.reset()
 
         agg_id
         |> to_snapshot(seq0, %{"seq" => seq0})
@@ -133,7 +143,7 @@ defmodule Maestro.Store.InMemoryTest do
           nil ->
             assert seq1 > seq0
 
-          %Maestro.Schemas.Snapshot{} ->
+          %Snapshot{} ->
             assert seq1 < seq0
         end
       end
@@ -141,14 +151,14 @@ defmodule Maestro.Store.InMemoryTest do
   end
 
   def to_snapshot(agg_id, seq, body \\ %{}),
-    do: %Maestro.Schemas.Snapshot{
+    do: %Snapshot{
       aggregate_id: agg_id,
       sequence: seq,
       body: body
     }
 
   def to_event({ts, seq}, agg_id, body \\ %{}),
-    do: %Maestro.Schemas.Event{
+    do: %Event{
       timestamp: ts,
       aggregate_id: agg_id,
       sequence: seq,

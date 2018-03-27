@@ -5,11 +5,6 @@
 # is restricted to this project.
 use Mix.Config
 
-# General application configuration
-config :maestro,
-  ecto_repos: [Maestro.Repo],
-  generators: [binary_id: true]
-
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

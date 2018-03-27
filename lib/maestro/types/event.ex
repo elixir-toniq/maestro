@@ -1,4 +1,4 @@
-defmodule Maestro.Schemas.Event do
+defmodule Maestro.Types.Event do
   @moduledoc """
   Events are the building block of our society. Behave accordingly
   """
@@ -25,13 +25,14 @@ defmodule Maestro.Schemas.Event do
     field(:timestamp, Ecto.HLClock, primary_key: true)
     field(:aggregate_id, Ecto.HLClock)
     field(:sequence, :integer)
+    field(:type, :string)
     field(:body, :map)
   end
 
   def changeset(%Event{} = e) do
     e
     |> change()
-    |> validate_required([:timestamp, :aggregate_id, :sequence, :body])
+    |> validate_required([:timestamp, :aggregate_id, :sequence, :type, :body])
     |> unique_constraint(
       :sequence,
       name: :aggregate_sequence_index,

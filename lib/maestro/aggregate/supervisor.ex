@@ -9,14 +9,14 @@ defmodule Maestro.Aggregate.Supervisor do
 
   use DynamicSupervisor
 
-  alias Maestro.Aggregate
+  alias Maestro.Aggregate.Root
 
   def start_link(args) do
     DynamicSupervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def get_child(key, mod) do
-    spec = {Aggregate, aggregate_id: key, module: mod}
+    spec = {Root, aggregate_id: key, module: mod}
 
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       {:ok, pid} -> pid

@@ -8,16 +8,11 @@ defmodule Maestro.Generators do
   import ExUnitProperties
 
   alias HLClock.Timestamp
+  alias Maestro.Types.Command
 
   @max_node_size 18_446_744_073_709_551_615
   @max_counter_size 65_535
   @max_time_size 2_147_483_647
-
-  def int_of_size(size) do
-    bind(bitstring(length: size), fn <<n::integer-size(size)>> ->
-      constant(n)
-    end)
-  end
 
   def timestamp do
     gen all time <- integer(0..max_time()),
@@ -27,12 +22,6 @@ defmodule Maestro.Generators do
       timestamp
     end
   end
-
-  def large_time, do: large_integer(max_time())
-  def large_node_id, do: large_integer(max_node())
-  def large_counter, do: large_integer(max_counter())
-
-  def large_integer(value), do: integer((value + 1)..(value * 2))
 
   def max_node, do: @max_node_size
   def max_time, do: @max_time_size
@@ -55,8 +44,8 @@ defmodule Maestro.Generators do
   end
 
   def to_command({true, seq}, agg_id) do
-    %Maestro.Command{
-      type: "increment",
+    %Command{
+      type: "increment_counter",
       sequence: seq,
       aggregate_id: agg_id,
       data: %{}
@@ -64,8 +53,8 @@ defmodule Maestro.Generators do
   end
 
   def to_command({false, seq}, agg_id) do
-    %Maestro.Command{
-      type: "decrement",
+    %Command{
+      type: "decrement_counter",
       sequence: seq,
       aggregate_id: agg_id,
       data: %{}
