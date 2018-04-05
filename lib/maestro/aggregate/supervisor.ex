@@ -1,5 +1,7 @@
 defmodule Maestro.Aggregate.Supervisor do
   @moduledoc """
+  Supervisor for `Maestro.Aggregate.Root`s across any/all domains.
+
   All aggregate roots, no matter how many different kinds you may have, are
   managed by a single supervisor/registry (for now). Given that aggregates are
   independently configurable and extensible, the need for a 1:1 on supervisors
@@ -9,14 +11,14 @@ defmodule Maestro.Aggregate.Supervisor do
 
   use DynamicSupervisor
 
-  alias Maestro.Aggregate
+  alias Maestro.Aggregate.Root
 
   def start_link(args) do
     DynamicSupervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
   def get_child(key, mod) do
-    spec = {Aggregate, aggregate_id: key, module: mod}
+    spec = {Root, aggregate_id: key, module: mod}
 
     case DynamicSupervisor.start_child(__MODULE__, spec) do
       {:ok, pid} -> pid

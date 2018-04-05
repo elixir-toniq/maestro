@@ -1,4 +1,4 @@
-defmodule Maestro.Command do
+defmodule Maestro.Types.Command do
   @moduledoc """
   Commands are the primary way clients express a desire to change the system. In
   Maestro, commands are always executed within the context of an aggregate in

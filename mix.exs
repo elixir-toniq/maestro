@@ -1,14 +1,14 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "0.0.3"
+  @version "0.1.0"
   @source_url "https://github.com/toniqsystems/maestro"
 
   def project do
     [
       app: :maestro,
       version: @version,
-      elixir: "~> 1.4",
+      elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -20,6 +20,12 @@ defmodule Maestro.Mixfile do
       docs: [
         source_url: @source_url,
         extras: ["README.md"]
+      ],
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.html": :test,
+        "coveralls.post": :test
       ]
     ]
   end
@@ -40,11 +46,13 @@ defmodule Maestro.Mixfile do
       {:postgrex, ">= 0.0.0"},
       {:poison, "~> 3.0"},
       {:ecto_hlclock, "~> 0.1"},
+      {:mock, "~> 0.3", only: :test, runtime: false},
       {:credo, "~> 0.5", only: [:dev, :test]},
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:benchee, "~> 0.9", only: :dev},
-      {:ex_doc, "~> 0.16", only: :dev}
+      {:ex_doc, "~> 0.16", only: :dev},
+      {:excoveralls, "~> 0.8", only: :test}
     ]
   end
 
@@ -65,9 +73,9 @@ defmodule Maestro.Mixfile do
   defp package do
     [
       name: :maestro,
-      files: ["lib", "mix.exs", "README.md", "priv"],
+      files: ["lib", "mix.exs", "README.md"],
       maintainers: ["Neil Menne", "Chris Keathley", "Brent Spell"],
-      licenses: ["MIT"],
+      licenses: ["Apache 2.0"],
       links: %{
         "GitHub" => @source_url,
         "Docs" => "http://hexdocs.pm/maestro"

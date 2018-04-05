@@ -11,9 +11,7 @@ defmodule Maestro.Store.Postgres do
   import Ecto.Query
 
   alias Ecto.Multi
-
-  alias Maestro.Repo
-  alias Maestro.Schemas.{Event, Snapshot}
+  alias Maestro.Types.{Event, Snapshot}
 
   def commit_events(events) do
     # ensure valid events are being passed
@@ -35,7 +33,9 @@ defmodule Maestro.Store.Postgres do
         ]
       )
 
-    case Repo.insert_all(
+    repo = get_repo()
+
+    case repo.insert_all(
            Snapshot,
            for_insert(s),
            conflict_target: [:aggregate_id],
@@ -46,18 +46,22 @@ defmodule Maestro.Store.Postgres do
   end
 
   def get_events(aggregate_id, min_seq, %{max_sequence: max_seq}) do
+    repo = get_repo()
+
     event_query()
     |> bounded_sequence(min_seq, max_seq)
     |> ordered()
     |> for_aggregate(aggregate_id)
-    |> Repo.all()
+    |> repo.all()
   end
 
   def get_snapshot(aggregate_id, min_seq, %{max_sequence: max_seq}) do
+    repo = get_repo()
+
     snapshot_query()
     |> bounded_sequence(min_seq, max_seq)
     |> for_aggregate(aggregate_id)
-    |> Repo.one()
+    |> repo.one()
   end
 
   defp event_query, do: from(e in Event)
@@ -90,9 +94,11 @@ defmodule Maestro.Store.Postgres do
   defp insert_events([]), do: :ok
 
   defp insert_events(changesets) do
+    repo = get_repo()
+
     changesets
     |> Enum.reduce(Multi.new(), &append_changeset/2)
-    |> Repo.transaction()
+    |> repo.transaction()
     |> case do
       {:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _} ->
         {:error, :retry_command}
@@ -114,4 +120,6 @@ defmodule Maestro.Store.Postgres do
     |> Map.delete(:__meta__)
     |> List.wrap()
   end
+
+  defp get_repo, do: Application.fetch_env!(:maestro, :repo)
 end

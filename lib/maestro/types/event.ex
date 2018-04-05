@@ -1,6 +1,12 @@
-defmodule Maestro.Schemas.Event do
+defmodule Maestro.Types.Event do
   @moduledoc """
-  Events are the building block of our society. Behave accordingly
+  Events are the key component from which state changes are made and projections
+  can be built.
+
+  In order to ensure consistent application of events, they are always retrieved
+  in order by sequence number. Additionally, events with conflicting sequence
+  numbers will be rejected, and the aggregate can retry the command that
+  generated the events that were committed second.
   """
 
   use Ecto.Schema
@@ -25,13 +31,18 @@ defmodule Maestro.Schemas.Event do
     field(:timestamp, Ecto.HLClock, primary_key: true)
     field(:aggregate_id, Ecto.HLClock)
     field(:sequence, :integer)
+    field(:type, :string)
     field(:body, :map)
   end
 
+  @doc """
+  Ensure that events are well formed and that sequence conflicts surface
+  properly when attempting to commit them to the log.
+  """
   def changeset(%Event{} = e) do
     e
     |> change()
-    |> validate_required([:timestamp, :aggregate_id, :sequence, :body])
+    |> validate_required([:timestamp, :aggregate_id, :sequence, :type, :body])
     |> unique_constraint(
       :sequence,
       name: :aggregate_sequence_index,
