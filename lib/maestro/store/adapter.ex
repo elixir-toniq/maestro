@@ -35,7 +35,8 @@ defmodule Maestro.Store.Adapter do
 
   @doc """
   Events are retrieved by aggregate_id and with at least a minimum sequence
-  number, `seq`.
+  number, `seq`. They should be ordered by sequence number to ensure that
+  aggregates always process events in the same order.
 
   Additional option(s):
      * `:max_sequence` (integer): a hard upper limit on the sequence number.

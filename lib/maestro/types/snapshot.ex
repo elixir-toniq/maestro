@@ -1,12 +1,15 @@
 defmodule Maestro.Types.Snapshot do
   @moduledoc """
-  aggregate roots can commit state that has been computed from the application
-  of events. this is useful if events are expensive to apply or if there are a
+  `Maestro.Aggregate.Root`s can commit state that has been computed from events.
+
+  Roots can commit state that has been computed from the application
+  of events. This is useful if events are expensive to apply or if there are a
   sufficiently large number of events that replaying from sequence=1 would be
   impractical.
 
-  With events, `:body` is the necessary information to apply the event. In the
-  case of snapshots, the body is the actual computed state of the entity.
+  With `Maestro.Types.Event`s, `:body` is the necessary information to apply the
+  event. In the case of `Snapshot`s, the body is the actual computed state of
+  the entity.
   """
 
   use Ecto.Schema

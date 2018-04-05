@@ -1,6 +1,9 @@
 defmodule Maestro.Store do
   @moduledoc """
-  Concise API for events and snapshots. Requires a Repo to operate.
+  Concise API for events and snapshots.
+
+  If you are using the `Maestro.Store.Postgres` adapter, an `Ecto.Repo` should
+  be provided.
   """
 
   @default_options [max_sequence: 2_147_483_647]

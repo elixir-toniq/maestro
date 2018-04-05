@@ -7,7 +7,7 @@ This library is under active development. There are a lot of names and code orga
 ## Installation
 
 Now [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `hlclock` to your list of dependencies in `mix.exs`:
+by adding `maestro` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do

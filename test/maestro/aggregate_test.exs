@@ -37,7 +37,7 @@ defmodule Maestro.AggregateTest do
           :ok = SampleAggregate.evaluate(agg_id, com)
         end
 
-        {:ok, value} = SampleAggregate.get_state(agg_id)
+        {:ok, value} = SampleAggregate.get(agg_id)
         assert value == increments(coms) - decrements(coms)
 
         {:ok, value} = SampleAggregate.fetch(agg_id)
@@ -48,7 +48,7 @@ defmodule Maestro.AggregateTest do
     test "commands, events, and snapshots" do
       {:ok, pid, agg_id} = SampleAggregate.new()
 
-      {:ok, value} = SampleAggregate.get_state(agg_id)
+      {:ok, value} = SampleAggregate.get(agg_id)
       assert value == 0
 
       SampleAggregate.evaluate(agg_id, %Command{
@@ -78,7 +78,7 @@ defmodule Maestro.AggregateTest do
         data: %{}
       })
 
-      {:ok, value} = SampleAggregate.get_state(agg_id)
+      {:ok, value} = SampleAggregate.get(agg_id)
       assert value == 3
     end
 
@@ -103,7 +103,7 @@ defmodule Maestro.AggregateTest do
       end
 
       assert SampleAggregate.replay(agg_id, 2) == {:ok, 2}
-      assert SampleAggregate.get_state(agg_id) == {:ok, 10}
+      assert SampleAggregate.get(agg_id) == {:ok, 10}
     end
   end
 

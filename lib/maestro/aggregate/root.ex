@@ -1,5 +1,8 @@
 defmodule Maestro.Aggregate.Root do
   @moduledoc """
+  Core behaviour and functionality provided by Maestro for processing commands
+  and managing aggregate state.
+
   Traditional domain entities are referred to as aggregates in the literature.
   At the outermost edge of a bounded context, you find an aggregate root. The
   goal of this library is to greatly simplify the process of implementing an
@@ -8,9 +11,10 @@ defmodule Maestro.Aggregate.Root do
   of evaluating your commands and applying the subsequent events to your domain
   objects.
 
-  The most crucial piece to this is the aggregate root. `Command` defines a
-  `behaviour` with the goal of isolating a single command handler's `eval`.
-  Similarly, there is an `Event` behaviour which defines how to `apply` that
+  The most crucial piece to this is the aggregate root.
+  `Maestro.Aggregate.CommandHandler` defines a `behaviour` with the goal of
+  isolating a single command handler's `eval`. Similarly, there is the
+  `Maestro.Aggregate.EventHandler` behaviour which defines how to `apply` that
   event to the aggregate. With these key components modeled explicitly, the
   `Maestro.Aggregate.Root` focuses on the dataflow and ensuring that queries to
   aggregate state flow properly.
@@ -63,7 +67,7 @@ defmodule Maestro.Aggregate.Root do
 
       # Public API
 
-      def get_state(agg_id), do: call(agg_id, :get_current)
+      def get(agg_id), do: call(agg_id, :get_current)
 
       def fetch(agg_id), do: call(agg_id, :fetch)
 
@@ -195,11 +199,10 @@ defmodule Maestro.Aggregate.Root do
   @callback use_snapshot(root :: t(), snapshot :: Snapshot.t()) :: any()
 
   @doc """
-  Provided by default, it is a (potentially) stale read of the aggregate's
-  state. If you want to ensure the state is as up-to-date as possible, see
-  `fetch`.
+  A (potentially) stale read of the aggregate's state. If you want to ensure the
+  state is as up-to-date as possible, see `fetch/1`.
   """
-  @callback get_state(id()) :: {:ok, any()} | {:error, any(), stack()}
+  @callback get(id()) :: {:ok, any()} | {:error, any(), stack()}
 
   @doc """
   Forces the aggregate to retrieve any events. Since Maestro operates in a
