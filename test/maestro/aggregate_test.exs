@@ -7,6 +7,7 @@ defmodule Maestro.AggregateTest do
   alias DBConnection.ConnectionError
   alias HLClock.Server, as: HLCServer
   alias Maestro.{InvalidCommandError, InvalidHandlerError}
+  alias Maestro.Aggregate.Root
   alias Maestro.Types.Command
   alias Maestro.SampleAggregate
   alias Maestro.Store.InMemory
@@ -39,7 +40,7 @@ defmodule Maestro.AggregateTest do
         {:ok, value} = SampleAggregate.get_state(agg_id)
         assert value == increments(coms) - decrements(coms)
 
-        {:ok, value} = SampleAggregate.get_latest(agg_id)
+        {:ok, value} = SampleAggregate.fetch(agg_id)
         assert value == increments(coms) - decrements(coms)
       end
     end
@@ -101,7 +102,7 @@ defmodule Maestro.AggregateTest do
         :ok = SampleAggregate.evaluate(agg_id, com)
       end
 
-      assert SampleAggregate.hydrate(agg_id, 2) == {:ok, 2}
+      assert SampleAggregate.replay(agg_id, 2) == {:ok, 2}
       assert SampleAggregate.get_state(agg_id) == {:ok, 10}
     end
   end
@@ -176,6 +177,12 @@ defmodule Maestro.AggregateTest do
         assert err == ConnectionError.exception("some")
       end
     end
+  end
+
+  test "event_type/2" do
+    assert Root.event_type(Maestro.SampleAggregate.Events, %{
+             __struct__: Maestro.SampleAggregate.Events.TypedEvent.Completed
+           }) == "typed_event.completed"
   end
 
   def repeat(val, times) do

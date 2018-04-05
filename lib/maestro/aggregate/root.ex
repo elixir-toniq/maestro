@@ -65,9 +65,9 @@ defmodule Maestro.Aggregate.Root do
 
       def get_state(agg_id), do: call(agg_id, :get_current)
 
-      def get_latest(agg_id), do: call(agg_id, :get_latest)
+      def fetch(agg_id), do: call(agg_id, :fetch)
 
-      def hydrate(agg_id, seq), do: call(agg_id, {:hydrate, seq})
+      def replay(agg_id, seq), do: call(agg_id, {:replay, seq})
 
       def evaluate(agg_id, command), do: call(agg_id, {:eval_command, command})
 
@@ -121,7 +121,7 @@ defmodule Maestro.Aggregate.Root do
         {:ok, agg}
       end
 
-      def handle_call(:get_latest, _from, agg) do
+      def handle_call(:fetch, _from, agg) do
         agg = Root.update_aggregate(agg)
         {:reply, {:ok, agg.state}, agg}
       rescue
@@ -133,8 +133,8 @@ defmodule Maestro.Aggregate.Root do
         {:reply, {:ok, agg.state}, agg}
       end
 
-      def handle_call({:hydrate, seq}, _from, agg) do
-        {:reply, {:ok, Root.hydrate(agg, seq)}, agg}
+      def handle_call({:replay, seq}, _from, agg) do
+        {:reply, {:ok, Root.replay(agg, seq)}, agg}
       rescue
         err -> {:reply, {:error, err, System.stacktrace()}, agg}
       end
@@ -195,24 +195,25 @@ defmodule Maestro.Aggregate.Root do
   @callback use_snapshot(root :: t(), snapshot :: Snapshot.t()) :: any()
 
   @doc """
-  Provided by default, it is a stale read of the aggregate's state. If you want
-  to ensure the state is as up-to-date as possible, see `get_latest`.
+  Provided by default, it is a (potentially) stale read of the aggregate's
+  state. If you want to ensure the state is as up-to-date as possible, see
+  `fetch`.
   """
   @callback get_state(id()) :: {:ok, any()} | {:error, any(), stack()}
 
   @doc """
   Forces the aggregate to retrieve any events. Since Maestro operates in a
-  node-local first manner, it's entirely possible some other node has processed
+  node-local manner, it's entirely possible some other node has processed
   commands/events.
   """
-  @callback get_latest(id()) :: {:ok, any()} | {:error, any(), stack()}
+  @callback fetch(id()) :: {:ok, any()} | {:error, any(), stack()}
 
   @doc """
   Recover a past version of the aggregate's state by specifying a maximum
   sequence number. The aggregate's snapshot and any/all events will be used to
   get the state back to that point.
   """
-  @callback hydrate(id(), sequence()) :: {:ok, any()} | {:error, any(), stack()}
+  @callback replay(id(), sequence()) :: {:ok, any()} | {:error, any(), stack()}
 
   @doc """
   Evaluate the command within the aggregate's context.
@@ -249,6 +250,24 @@ defmodule Maestro.Aggregate.Root do
     mod = Keyword.fetch!(opts, :module)
     id = Keyword.fetch!(opts, :aggregate_id)
     mod.start_link(id)
+  end
+
+  @doc """
+  struct to event type of the form "The.ModuleName -> the.module_name" dropping
+  the provided prefix for conciseness
+  """
+  @spec event_type(prefix :: module(), struct()) :: String.t()
+  def event_type(pre, str) do
+    len =
+      pre
+      |> Module.split()
+      |> Enum.count()
+
+    str.__struct__
+    |> Module.split()
+    |> Stream.drop(len)
+    |> Stream.map(&Macro.underscore/1)
+    |> Enum.join(".")
   end
 
   @doc false
@@ -289,7 +308,7 @@ defmodule Maestro.Aggregate.Root do
   end
 
   @doc false
-  def hydrate(agg, target_seq) do
+  def replay(agg, target_seq) do
     agg.id
     |> create_aggregate(agg.module, agg.command_prefix, agg.event_prefix)
     |> update_aggregate(target_seq)
