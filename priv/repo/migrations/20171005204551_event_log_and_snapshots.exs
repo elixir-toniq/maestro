@@ -1,4 +1,4 @@
-defmodule Maestro.Repo.Migrations.Clocking do
+defmodule Maestro.Repo.Migrations.EventLogAndSnapshots do
   use Ecto.Migration
 
   def change do
@@ -6,6 +6,7 @@ defmodule Maestro.Repo.Migrations.Clocking do
       add :timestamp, :binary, null: false, primary_key: true
       add :aggregate_id, :binary, null: false
       add :sequence, :integer, null: false
+      add :type, :string, size: 256, null: false
       add :body, :map, null: false
     end
 
