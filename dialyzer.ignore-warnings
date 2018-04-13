@@ -1,0 +1,4 @@
+lib/mix/tasks/maestro.create.event_store_migration.ex:1: Callback info about the 'Elixir.Mix.Task' behaviour is not available
+:0: Unknown function 'Elixir.EEx.Engine':'fetch_assign!'/2
+:0: Unknown function 'Elixir.Mix.Generator':create_directory/1
+:0: Unknown function 'Elixir.Mix.Generator':create_file/2

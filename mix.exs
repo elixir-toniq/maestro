@@ -1,7 +1,7 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.1.1"
   @source_url "https://github.com/toniqsystems/maestro"
 
   def project do
@@ -21,6 +21,7 @@ defmodule Maestro.Mixfile do
         source_url: @source_url,
         extras: ["README.md"]
       ],
+      dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"],
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
         coveralls: :test,
