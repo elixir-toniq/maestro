@@ -13,12 +13,20 @@ defmodule Maestro.Store.Postgres do
   alias Ecto.Multi
   alias Maestro.Types.{Event, Snapshot}
 
-  def commit_events(events) do
-    # ensure valid events are being passed
-    events
-    |> Enum.map(&Event.changeset/1)
-    |> insert_events()
+  def commit_all(events, projections) do
+    multi =
+      events
+      |> Stream.map(&Event.changeset/1)
+      |> Enum.reduce(Multi.new(), &append_changeset/2)
+
+    projections
+    |> Enum.reduce(multi, fn {name, mod, fun, args}, multi ->
+      Multi.run(multi, name, mod, fun, args)
+    end)
+    |> apply_all()
   end
+
+  def commit_events(events), do: commit_all(events, [])
 
   def commit_snapshot(%Snapshot{} = s) do
     upstmt =
@@ -91,13 +99,10 @@ defmodule Maestro.Store.Postgres do
     )
   end
 
-  defp insert_events([]), do: :ok
-
-  defp insert_events(changesets) do
+  defp apply_all(multi) do
     repo = get_repo()
 
-    changesets
-    |> Enum.reduce(Multi.new(), &append_changeset/2)
+    multi
     |> repo.transaction()
     |> case do
       {:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _} ->

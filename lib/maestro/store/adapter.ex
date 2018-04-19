@@ -10,6 +10,19 @@ defmodule Maestro.Store.Adapter do
 
   @type options :: map
 
+  @type name :: any()
+
+  @type args :: [any()]
+
+  @doc """
+  If any transactional projections are present (i.e. 1 or more MFA triples),
+  this function is an extension of `commit_events` that within the same
+  transaction applies all projections to the store as well. Otherwise, this function dispatches to `commit_events`.
+  """
+  @callback commit_all([Event.t()], [{name(), module(), function(), args()}]) ::
+              :ok
+              | {:error, :retry_command}
+
   @doc """
   Events are validated according to the `Event.changeset/1` function. If
   successful, events are committed transactionally. In the event of a conflict

@@ -1,30 +1,30 @@
 defmodule Maestro.AggregateTest do
   use ExUnit.Case
+
+  import Ecto.Query
   import ExUnitProperties
   import Maestro.Generators
   import Mock
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias DBConnection.ConnectionError
   alias HLClock.Server, as: HLCServer
   alias Maestro.{InvalidCommandError, InvalidHandlerError}
   alias Maestro.Aggregate.Root
-  alias Maestro.Types.Command
-  alias Maestro.SampleAggregate
-  alias Maestro.Store.InMemory
+  alias Maestro.Types.{Command, Event}
+  alias Maestro.{Repo, SampleAggregate}
 
   setup_all do
     Application.put_env(
       :maestro,
       :storage_adapter,
-      Maestro.Store.InMemory
+      Maestro.Store.Postgres
     )
 
-    {:ok, pid} = InMemory.start_link()
     HLCServer.start_link()
 
-    on_exit(fn ->
-      Process.exit(pid, :normal)
-    end)
+    :ok = Sandbox.checkout(Repo)
+    Sandbox.mode(Repo, {:shared, self()})
 
     :ok
   end
@@ -37,10 +37,10 @@ defmodule Maestro.AggregateTest do
           :ok = SampleAggregate.evaluate(agg_id, com)
         end
 
-        {:ok, value} = SampleAggregate.get(agg_id)
+        {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
         assert value == increments(coms) - decrements(coms)
 
-        {:ok, value} = SampleAggregate.fetch(agg_id)
+        {:ok, %{"value" => value}} = SampleAggregate.fetch(agg_id)
         assert value == increments(coms) - decrements(coms)
       end
     end
@@ -48,7 +48,7 @@ defmodule Maestro.AggregateTest do
     test "commands, events, and snapshots" do
       {:ok, pid, agg_id} = SampleAggregate.new()
 
-      {:ok, value} = SampleAggregate.get(agg_id)
+      {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
       assert value == 0
 
       SampleAggregate.evaluate(agg_id, %Command{
@@ -78,7 +78,7 @@ defmodule Maestro.AggregateTest do
         data: %{}
       })
 
-      {:ok, value} = SampleAggregate.get(agg_id)
+      {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
       assert value == 3
     end
 
@@ -102,8 +102,10 @@ defmodule Maestro.AggregateTest do
         :ok = SampleAggregate.evaluate(agg_id, com)
       end
 
-      assert SampleAggregate.replay(agg_id, 2) == {:ok, 2}
-      assert SampleAggregate.get(agg_id) == {:ok, 10}
+      {:ok, %{"value" => value}} = SampleAggregate.replay(agg_id, 2)
+      assert value == 2
+      {:ok, %{"value" => current}} = SampleAggregate.get(agg_id)
+      assert current == 10
     end
   end
 
@@ -183,6 +185,46 @@ defmodule Maestro.AggregateTest do
     assert Root.event_type(Maestro.SampleAggregate.Events, %{
              __struct__: Maestro.SampleAggregate.Events.TypedEvent.Completed
            }) == "typed_event.completed"
+  end
+
+  describe "projections" do
+    test "strong projections are invoked/called" do
+      {:ok, _pid, agg_id} = SampleAggregate.new()
+
+      com = %Command{
+        type: "name_counter",
+        sequence: 0,
+        aggregate_id: agg_id,
+        data: %{"name" => "sample"}
+      }
+
+      :ok = SampleAggregate.evaluate(agg_id, com)
+
+      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+
+      assert err ==
+               InvalidCommandError.exception(
+                 message: "altering names is prohibited"
+               )
+
+      {:ok, _pid, agg_id_2} = SampleAggregate.new()
+
+      com_2 = Map.put(com, :aggregate_id, agg_id_2)
+
+      {:error, err, _stack} = SampleAggregate.evaluate(agg_id_2, com_2)
+
+      # projection failed the constraint
+      assert err.__struct__ == Ecto.ConstraintError
+
+      # no events were committed
+      assert Repo.one(
+               from(
+                 e in Event,
+                 where: e.aggregate_id == ^agg_id_2,
+                 select: count(e.timestamp)
+               )
+             ) == 0
+    end
   end
 
   def repeat(val, times) do

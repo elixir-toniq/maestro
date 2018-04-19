@@ -16,6 +16,8 @@ defmodule Maestro.Store.InMemory do
     )
   end
 
+  def commit_all(events, _projections), do: commit_events(events)
+
   def commit_events([]), do: :ok
 
   def commit_events(events) do
