@@ -9,10 +9,6 @@ defmodule Maestro.Aggregate.ProjectionHandler do
   the list of `:projections` on the aggregate root.
   """
 
-  @type name :: any()
-
-  @type args :: [any()]
-
   @type event :: Maestro.Types.Event.t()
 
   @doc """
