@@ -6,7 +6,7 @@ defmodule Maestro.SampleAggregate do
   use Maestro.Aggregate.Root,
     command_prefix: Maestro.SampleAggregate.Commands,
     event_prefix: Maestro.SampleAggregate.Events,
-    projectors: [Maestro.SampleAggregate.Projections.NameProjectionHandler]
+    projections: [Maestro.SampleAggregate.Projections.NameProjectionHandler]
 
   alias HLClock
 

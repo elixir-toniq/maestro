@@ -5,8 +5,8 @@ defmodule Maestro.Aggregate.ProjectionHandler do
 
   This defines a minimal behaviour for use within the aggregate command/event
   lifecycle. For projections that should be updated immediately iff the relevant
-  events are committed, a `ProjectionHandler` should indicate this by returning
-  true via the `strong?/0` callback.
+  events are committed, the relevant `ProjectionHandler` should by included in
+  the list of `:projections` on the aggregate root.
   """
 
   @type name :: any()
@@ -16,19 +16,8 @@ defmodule Maestro.Aggregate.ProjectionHandler do
   @type event :: Maestro.Types.Event.t()
 
   @doc """
-  Strong consistency projections are committed along with the events in
-  a single transaction. This allows for maintaining projections like secondary
-  indices and uniqueness constraints that would be hard to maintain in an async
-  projection.
+  Projections registered with an aggregate root are invoked for _every_ event,
+  so they should ignore unrelated events explicitly.
   """
-  @callback strong?() :: boolean()
-
-  @doc """
-  Given an arbitrary event the projection should always return either named MFA
-  triples or nil. This is true for either eventually consistent or strongly
-  consistent projections. The function's return type should follow the
-  constraints imposed by `Ecto.Multi.run/5` (i.e. returning {:ok, value} or
-  {:error, any})
-  """
-  @callback project(event()) :: {name(), module(), function(), args()} | nil
+  @callback project(event()) :: value :: any()
 end

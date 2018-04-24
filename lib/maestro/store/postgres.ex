@@ -14,15 +14,10 @@ defmodule Maestro.Store.Postgres do
   alias Maestro.Types.{Event, Snapshot}
 
   def commit_all(events, projections) do
-    multi =
-      events
-      |> Stream.map(&Event.changeset/1)
-      |> Enum.reduce(Multi.new(), &append_changeset/2)
-
-    projections
-    |> Enum.reduce(multi, fn {name, mod, fun, args}, multi ->
-      Multi.run(multi, name, mod, fun, args)
-    end)
+    events
+    |> Stream.map(&Event.changeset/1)
+    |> Enum.reduce(Multi.new(), &append_changeset/2)
+    |> with_projections(events, projections)
     |> apply_all()
   end
 
@@ -108,9 +103,30 @@ defmodule Maestro.Store.Postgres do
       {:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _} ->
         {:error, :retry_command}
 
+      {:error, _name, err, _changes_so_far} ->
+        raise err
+
       {:ok, _} ->
         :ok
     end
+  end
+
+  defp with_projections(multi, _events, []), do: multi
+
+  defp with_projections(multi, events, projections) do
+    Multi.run(multi, :projections, fn _ ->
+      run_projections(events, projections)
+    end)
+  end
+
+  defp run_projections(events, projections) do
+    for handler <- projections,
+        event <- events,
+        do: handler.project(event)
+
+    {:ok, :ok}
+  rescue
+    e -> {:error, e}
   end
 
   defp append_changeset(cs, mult), do: Multi.insert(mult, changeset_key(cs), cs)

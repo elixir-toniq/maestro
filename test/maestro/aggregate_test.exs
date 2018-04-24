@@ -213,7 +213,6 @@ defmodule Maestro.AggregateTest do
 
       {:error, err, _stack} = SampleAggregate.evaluate(agg_id_2, com_2)
 
-      # projection failed the constraint
       assert err.__struct__ == Ecto.ConstraintError
 
       # no events were committed
