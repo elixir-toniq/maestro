@@ -8,7 +8,16 @@ defmodule Maestro.Store.Adapter do
 
   @type seq :: Event.sequence()
 
-  @type options :: map
+  @type options :: map()
+
+  @doc """
+  If any transactional projections are present, this function is an extension of
+  `commit_events` that within the same transaction applies all projections to
+  the store as well. Otherwise, this function dispatches to `commit_events`.
+  """
+  @callback commit_all([Event.t()], [module()]) ::
+              :ok
+              | {:error, :retry_command}
 
   @doc """
   Events are validated according to the `Event.changeset/1` function. If

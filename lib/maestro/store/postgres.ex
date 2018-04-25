@@ -13,12 +13,15 @@ defmodule Maestro.Store.Postgres do
   alias Ecto.Multi
   alias Maestro.Types.{Event, Snapshot}
 
-  def commit_events(events) do
-    # ensure valid events are being passed
+  def commit_all(events, projections) do
     events
-    |> Enum.map(&Event.changeset/1)
-    |> insert_events()
+    |> Stream.map(&Event.changeset/1)
+    |> Enum.reduce(Multi.new(), &append_changeset/2)
+    |> with_projections(events, projections)
+    |> apply_all()
   end
+
+  def commit_events(events), do: commit_all(events, [])
 
   def commit_snapshot(%Snapshot{} = s) do
     upstmt =
@@ -91,21 +94,39 @@ defmodule Maestro.Store.Postgres do
     )
   end
 
-  defp insert_events([]), do: :ok
-
-  defp insert_events(changesets) do
+  defp apply_all(multi) do
     repo = get_repo()
 
-    changesets
-    |> Enum.reduce(Multi.new(), &append_changeset/2)
+    multi
     |> repo.transaction()
     |> case do
       {:error, _, %{errors: [sequence: {:dupe_seq_agg, _}]}, _} ->
         {:error, :retry_command}
 
+      {:error, _name, err, _changes_so_far} ->
+        raise err
+
       {:ok, _} ->
         :ok
     end
+  end
+
+  defp with_projections(multi, _events, []), do: multi
+
+  defp with_projections(multi, events, projections) do
+    Multi.run(multi, :projections, fn _ ->
+      run_projections(events, projections)
+    end)
+  end
+
+  defp run_projections(events, projections) do
+    for handler <- projections,
+        event <- events,
+        do: handler.project(event)
+
+    {:ok, :ok}
+  rescue
+    e -> {:error, e}
   end
 
   defp append_changeset(cs, mult), do: Multi.insert(mult, changeset_key(cs), cs)

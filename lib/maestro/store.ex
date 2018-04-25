@@ -21,6 +21,16 @@ defmodule Maestro.Store do
   @type opts :: [{:max_sequence, sequence()}]
 
   @doc """
+  Commit the events and apply all projections within a transaction. If there's a
+  sequence number conflict, the events and projections will be discarded such
+  that the command generating these components could be retried.
+  """
+  @spec commit_all(events(), [module()]) :: :ok | {:error, :retry_command}
+  def commit_all(events, projections) do
+    adapter().commit_all(events, projections)
+  end
+
+  @doc """
   Commit the events provided iff there is no sequence number conflict.
   Otherwise, the command should be retried as indicated by the specific error
   tuple.

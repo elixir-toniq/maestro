@@ -5,13 +5,14 @@ defmodule Maestro.SampleAggregate do
 
   use Maestro.Aggregate.Root,
     command_prefix: Maestro.SampleAggregate.Commands,
-    event_prefix: Maestro.SampleAggregate.Events
+    event_prefix: Maestro.SampleAggregate.Events,
+    projections: [Maestro.SampleAggregate.Projections.NameProjectionHandler]
 
   alias HLClock
 
-  def initial_state, do: 0
+  def initial_state, do: %{"value" => 0, "name" => nil}
 
-  def prepare_snapshot(v), do: %{"value" => v}
+  def prepare_snapshot(state), do: state
 
-  def use_snapshot(_, %{body: %{"value" => v}}), do: v
+  def use_snapshot(_, %{body: state}), do: state
 end

@@ -5,5 +5,7 @@ defmodule Maestro.SampleAggregate.Events.CounterDecremented do
 
   @behaviour Maestro.Aggregate.EventHandler
 
-  def apply(state, _), do: state - 1
+  defp dec(v), do: v - 1
+
+  def apply(state, _), do: Map.update!(state, "value", &dec/1)
 end
