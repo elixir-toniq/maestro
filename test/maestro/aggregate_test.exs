@@ -46,7 +46,7 @@ defmodule Maestro.AggregateTest do
     end
 
     test "commands, events, and snapshots" do
-      {:ok, pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
       assert value == 0
@@ -65,7 +65,7 @@ defmodule Maestro.AggregateTest do
 
       SampleAggregate.snapshot(agg_id)
 
-      GenServer.stop(pid)
+      agg_id |> Root.whereis(SampleAggregate) |> GenServer.stop()
 
       {:ok, _pid} = SampleAggregate.start_link(agg_id)
 
@@ -80,7 +80,7 @@ defmodule Maestro.AggregateTest do
     end
 
     test "recover an intermediate state" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       base_command = %Command{
         type: "increment_counter",
@@ -108,7 +108,7 @@ defmodule Maestro.AggregateTest do
 
   describe "communicating/handling failure" do
     test "invalid command" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "invalid",
@@ -122,7 +122,7 @@ defmodule Maestro.AggregateTest do
     end
 
     test "handler rejected command" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "conditional_increment",
@@ -139,7 +139,7 @@ defmodule Maestro.AggregateTest do
     end
 
     test "handler raised an unexpected error" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "raise_command",
@@ -156,7 +156,7 @@ defmodule Maestro.AggregateTest do
     end
 
     test "store error" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "increment_counter",
@@ -183,7 +183,7 @@ defmodule Maestro.AggregateTest do
 
   describe "projections" do
     test "strong projections are invoked/called" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "name_counter",
@@ -200,7 +200,7 @@ defmodule Maestro.AggregateTest do
                  message: "altering names is prohibited"
                )
 
-      {:ok, _pid, agg_id_2} = SampleAggregate.new()
+      {:ok, agg_id_2} = SampleAggregate.new()
 
       com_2 = Map.put(com, :aggregate_id, agg_id_2)
 

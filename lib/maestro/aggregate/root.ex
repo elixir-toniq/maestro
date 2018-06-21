@@ -105,11 +105,8 @@ defmodule Maestro.Aggregate.Root do
 
       def new do
         with {:ok, agg_id} <- HLClock.now() do
-          pid =
-            agg_id
-            |> Root.whereis(__MODULE__)
-
-          {:ok, pid, agg_id}
+          Root.whereis(agg_id, __MODULE__)
+          {:ok, agg_id}
         end
       end
 
@@ -190,7 +187,7 @@ defmodule Maestro.Aggregate.Root do
   Create a new aggregate along with the provided `initial_state` function. This
   function should only fail if there was a problem generating an HLC timestamp.
   """
-  @callback new() :: {:ok, pid(), id()} | {:error, any()}
+  @callback new() :: {:ok, id()} | {:error, any()}
 
   @doc """
   When an aggregate root is created, this callback is invoked to generate the
