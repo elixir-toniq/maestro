@@ -341,10 +341,10 @@ defmodule Maestro.Aggregate.Root do
 
   @doc false
   def eval_command(agg, command) do
-    with seq <- Map.get(command, :sequence, 0),
-         agg <- update_aggregate(agg, seq),
+    with agg <- update_aggregate(agg),
          com_module <- lookup_module(agg.command_prefix, command.type),
-         events <- com_module.eval(agg, command) do
+         events <- com_module.eval(agg, command),
+         events <- prepare_events(agg, events) do
       persist_events(agg, command, events)
     end
   end
@@ -352,6 +352,16 @@ defmodule Maestro.Aggregate.Root do
   @doc false
   def persist_snapshot(snapshot) do
     Store.commit_snapshot(snapshot)
+  end
+
+  defp prepare_events(agg, events) do
+    events
+    |> Enum.with_index(agg.sequence + 1)
+    |> Enum.reduce([], fn {event, seq}, evs ->
+      with {:ok, ts} <- HLClock.now() do
+        [%{event | timestamp: ts, sequence: seq} | evs]
+      end
+    end)
   end
 
   defp persist_events(agg, command, events) do

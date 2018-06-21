@@ -53,14 +53,12 @@ defmodule Maestro.AggregateTest do
 
       SampleAggregate.evaluate(agg_id, %Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       })
 
       SampleAggregate.evaluate(agg_id, %Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       })
@@ -73,7 +71,6 @@ defmodule Maestro.AggregateTest do
 
       SampleAggregate.evaluate(agg_id, %Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       })
@@ -87,19 +84,19 @@ defmodule Maestro.AggregateTest do
 
       base_command = %Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       }
 
-      commands =
-        base_command
-        |> repeat(10)
-        |> Enum.with_index(1)
-        |> Enum.map(fn {c, i} -> %{c | sequence: i} end)
+      commands = repeat(base_command, 10)
 
       for com <- commands do
-        :ok = SampleAggregate.evaluate(agg_id, com)
+        res = SampleAggregate.evaluate(agg_id, com)
+
+        case res do
+          :ok -> :ok
+          {:error, err, stack} -> reraise err, stack
+        end
       end
 
       {:ok, %{"value" => value}} = SampleAggregate.replay(agg_id, 2)
@@ -115,7 +112,6 @@ defmodule Maestro.AggregateTest do
 
       com = %Command{
         type: "invalid",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{}
       }
@@ -130,7 +126,6 @@ defmodule Maestro.AggregateTest do
 
       com = %Command{
         type: "conditional_increment",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{"do_inc" => false}
       }
@@ -148,7 +143,6 @@ defmodule Maestro.AggregateTest do
 
       com = %Command{
         type: "raise_command",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{"raise" => true}
       }
@@ -166,12 +160,12 @@ defmodule Maestro.AggregateTest do
 
       com = %Command{
         type: "increment_counter",
-        sequence: 2,
         aggregate_id: agg_id,
         data: %{}
       }
 
       with_mock Maestro.Store,
+        max_sequence: fn -> 2_147_483_647 end,
         get_snapshot: fn _, _, _ ->
           raise(ConnectionError, "some")
         end do
@@ -193,7 +187,6 @@ defmodule Maestro.AggregateTest do
 
       com = %Command{
         type: "name_counter",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{"name" => "sample"}
       }
