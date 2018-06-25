@@ -6,13 +6,13 @@ defmodule Maestro.AggregateTest do
   import Maestro.Generators
   import Mock
 
-  alias Ecto.Adapters.SQL.Sandbox
   alias DBConnection.ConnectionError
+  alias Ecto.Adapters.SQL.Sandbox
   alias HLClock.Server, as: HLCServer
-  alias Maestro.{InvalidCommandError, InvalidHandlerError}
   alias Maestro.Aggregate.Root
-  alias Maestro.Types.{Command, Event}
+  alias Maestro.{InvalidCommandError, InvalidHandlerError}
   alias Maestro.{Repo, SampleAggregate}
+  alias Maestro.Types.{Command, Event}
 
   setup_all do
     Application.put_env(
