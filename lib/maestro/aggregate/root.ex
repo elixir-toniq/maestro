@@ -410,7 +410,10 @@ defmodule Maestro.Aggregate.Root do
     _ -> reraise(InvalidHandlerError, [type: type], System.stacktrace())
   end
 
-  @doc false
+  @doc """
+  Look up an aggregate by its ID. The module is provided to start the right type
+  of aggregate should it not already be started.
+  """
   def whereis(agg_id, mod), do: Supervisor.get_child(agg_id, mod)
 
   defp max_seq(events), do: events |> List.last() |> Map.get(:sequence)
