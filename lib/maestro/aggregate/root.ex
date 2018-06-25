@@ -87,7 +87,11 @@ defmodule Maestro.Aggregate.Root do
 
       def replay(agg_id, seq), do: call(agg_id, {:replay, seq})
 
-      def evaluate(agg_id, command), do: call(agg_id, {:eval_command, command})
+      def evaluate(%Maestro.Types.Command{} = command) do
+        call(command.aggregate_id, {:eval_command, command})
+      end
+
+      def evaluate(_), do: raise(ArgumentError, "invalid command")
 
       def snapshot(agg_id) do
         with {:ok, snap} <- call(agg_id, :get_snapshot) do
@@ -233,7 +237,7 @@ defmodule Maestro.Aggregate.Root do
   @doc """
   Evaluate the command within the aggregate's context.
   """
-  @callback evaluate(id(), command()) :: :ok | {:error, any(), stack()}
+  @callback evaluate(command()) :: :ok | {:error, any(), stack()}
 
   @doc """
   Using the aggregate root's `prepare_snapshot` function, generate and store a

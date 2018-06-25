@@ -34,7 +34,7 @@ defmodule Maestro.AggregateTest do
       check all agg_id <- timestamp(),
                 coms <- commands(agg_id, max_commands: 200) do
         for com <- coms do
-          :ok = SampleAggregate.evaluate(agg_id, com)
+          :ok = SampleAggregate.evaluate(com)
         end
 
         {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
@@ -51,13 +51,13 @@ defmodule Maestro.AggregateTest do
       {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
       assert value == 0
 
-      SampleAggregate.evaluate(agg_id, %Command{
+      SampleAggregate.evaluate(%Command{
         type: "increment_counter",
         aggregate_id: agg_id,
         data: %{}
       })
 
-      SampleAggregate.evaluate(agg_id, %Command{
+      SampleAggregate.evaluate(%Command{
         type: "increment_counter",
         aggregate_id: agg_id,
         data: %{}
@@ -69,7 +69,7 @@ defmodule Maestro.AggregateTest do
 
       {:ok, _pid} = SampleAggregate.start_link(agg_id)
 
-      SampleAggregate.evaluate(agg_id, %Command{
+      SampleAggregate.evaluate(%Command{
         type: "increment_counter",
         aggregate_id: agg_id,
         data: %{}
@@ -91,7 +91,7 @@ defmodule Maestro.AggregateTest do
       commands = repeat(base_command, 10)
 
       for com <- commands do
-        res = SampleAggregate.evaluate(agg_id, com)
+        res = SampleAggregate.evaluate(com)
 
         case res do
           :ok -> :ok
@@ -116,9 +116,16 @@ defmodule Maestro.AggregateTest do
         data: %{}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err == InvalidHandlerError.exception(type: "invalid")
+
+      assert_raise(ArgumentError, fn ->
+        SampleAggregate.evaluate(%{
+          type: "increment_counter",
+          data: %{}
+        })
+      end)
     end
 
     test "handler rejected command" do
@@ -130,7 +137,7 @@ defmodule Maestro.AggregateTest do
         data: %{"do_inc" => false}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err ==
                InvalidCommandError.exception(
@@ -147,7 +154,7 @@ defmodule Maestro.AggregateTest do
         data: %{"raise" => true}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err ==
                ArgumentError.exception(
@@ -169,7 +176,7 @@ defmodule Maestro.AggregateTest do
         get_snapshot: fn _, _, _ ->
           raise(ConnectionError, "some")
         end do
-        {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+        {:error, err, _stack} = SampleAggregate.evaluate(com)
         assert err == ConnectionError.exception("some")
       end
     end
@@ -191,9 +198,9 @@ defmodule Maestro.AggregateTest do
         data: %{"name" => "sample"}
       }
 
-      :ok = SampleAggregate.evaluate(agg_id, com)
+      :ok = SampleAggregate.evaluate(com)
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err ==
                InvalidCommandError.exception(
@@ -204,7 +211,7 @@ defmodule Maestro.AggregateTest do
 
       com_2 = Map.put(com, :aggregate_id, agg_id_2)
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id_2, com_2)
+      {:error, err, _stack} = SampleAggregate.evaluate(com_2)
 
       assert err.__struct__ == Ecto.ConstraintError
 

@@ -89,6 +89,6 @@ end
 
 ```elixir
 iex(1)> {:ok, id} = MyApp.Aggregate.new()
-iex(2)> :ok = MyApp.Aggregate.evaluate(id, %Maestro.Types.Command{aggregate_id: id, type: "increment_counter", data: %{}})
+iex(2)> :ok = MyApp.Aggregate.evaluate(%Maestro.Types.Command{aggregate_id: id, type: "increment_counter", data: %{}})
 iex(3)> {:ok, %{"value" => 1}} = MyApp.Aggregate.get(id)
 ```
