@@ -26,7 +26,8 @@ defmodule Maestro.Mixfile do
       preferred_cli_env: [
         coveralls: :test,
         "coveralls.html": :test,
-        "coveralls.post": :test
+        "coveralls.post": :test,
+        "coveralls.travis": :test
       ]
     ]
   end
