@@ -8,8 +8,6 @@ defmodule Maestro.SampleAggregate do
     event_prefix: Maestro.SampleAggregate.Events,
     projections: [Maestro.SampleAggregate.Projections.NameProjectionHandler]
 
-  alias HLClock
-
   def initial_state, do: %{"value" => 0, "name" => nil}
 
   def prepare_snapshot(state), do: state

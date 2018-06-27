@@ -87,7 +87,11 @@ defmodule Maestro.Aggregate.Root do
 
       def replay(agg_id, seq), do: call(agg_id, {:replay, seq})
 
-      def evaluate(agg_id, command), do: call(agg_id, {:eval_command, command})
+      def evaluate(%Maestro.Types.Command{} = command) do
+        call(command.aggregate_id, {:eval_command, command})
+      end
+
+      def evaluate(_), do: raise(ArgumentError, "invalid command")
 
       def snapshot(agg_id) do
         with {:ok, snap} <- call(agg_id, :get_snapshot) do
@@ -105,11 +109,8 @@ defmodule Maestro.Aggregate.Root do
 
       def new do
         with {:ok, agg_id} <- HLClock.now() do
-          pid =
-            agg_id
-            |> Root.whereis(__MODULE__)
-
-          {:ok, pid, agg_id}
+          Root.whereis(agg_id, __MODULE__)
+          {:ok, agg_id}
         end
       end
 
@@ -190,7 +191,7 @@ defmodule Maestro.Aggregate.Root do
   Create a new aggregate along with the provided `initial_state` function. This
   function should only fail if there was a problem generating an HLC timestamp.
   """
-  @callback new() :: {:ok, pid(), id()} | {:error, any()}
+  @callback new() :: {:ok, id()} | {:error, any()}
 
   @doc """
   When an aggregate root is created, this callback is invoked to generate the
@@ -236,7 +237,7 @@ defmodule Maestro.Aggregate.Root do
   @doc """
   Evaluate the command within the aggregate's context.
   """
-  @callback evaluate(id(), command()) :: :ok | {:error, any(), stack()}
+  @callback evaluate(command()) :: :ok | {:error, any(), stack()}
 
   @doc """
   Using the aggregate root's `prepare_snapshot` function, generate and store a
@@ -341,10 +342,10 @@ defmodule Maestro.Aggregate.Root do
 
   @doc false
   def eval_command(agg, command) do
-    with seq <- Map.get(command, :sequence, 0),
-         agg <- update_aggregate(agg, seq),
+    with agg <- update_aggregate(agg),
          com_module <- lookup_module(agg.command_prefix, command.type),
-         events <- com_module.eval(agg, command) do
+         events <- com_module.eval(agg, command),
+         events <- prepare_events(agg, events) do
       persist_events(agg, command, events)
     end
   end
@@ -352,6 +353,16 @@ defmodule Maestro.Aggregate.Root do
   @doc false
   def persist_snapshot(snapshot) do
     Store.commit_snapshot(snapshot)
+  end
+
+  defp prepare_events(agg, events) do
+    events
+    |> Enum.with_index(agg.sequence + 1)
+    |> Enum.reduce([], fn {event, seq}, evs ->
+      with {:ok, ts} <- HLClock.now() do
+        [%{event | timestamp: ts, sequence: seq} | evs]
+      end
+    end)
   end
 
   defp persist_events(agg, command, events) do
@@ -403,7 +414,10 @@ defmodule Maestro.Aggregate.Root do
     _ -> reraise(InvalidHandlerError, [type: type], System.stacktrace())
   end
 
-  @doc false
+  @doc """
+  Look up an aggregate by its ID. The module is provided to start the right type
+  of aggregate should it not already be started.
+  """
   def whereis(agg_id, mod), do: Supervisor.get_child(agg_id, mod)
 
   defp max_seq(events), do: events |> List.last() |> Map.get(:sequence)

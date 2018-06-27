@@ -6,13 +6,13 @@ defmodule Maestro.AggregateTest do
   import Maestro.Generators
   import Mock
 
-  alias Ecto.Adapters.SQL.Sandbox
   alias DBConnection.ConnectionError
+  alias Ecto.Adapters.SQL.Sandbox
   alias HLClock.Server, as: HLCServer
-  alias Maestro.{InvalidCommandError, InvalidHandlerError}
   alias Maestro.Aggregate.Root
-  alias Maestro.Types.{Command, Event}
+  alias Maestro.{InvalidCommandError, InvalidHandlerError}
   alias Maestro.{Repo, SampleAggregate}
+  alias Maestro.Types.{Command, Event}
 
   setup_all do
     Application.put_env(
@@ -34,7 +34,7 @@ defmodule Maestro.AggregateTest do
       check all agg_id <- timestamp(),
                 coms <- commands(agg_id, max_commands: 200) do
         for com <- coms do
-          :ok = SampleAggregate.evaluate(agg_id, com)
+          :ok = SampleAggregate.evaluate(com)
         end
 
         {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
@@ -46,34 +46,31 @@ defmodule Maestro.AggregateTest do
     end
 
     test "commands, events, and snapshots" do
-      {:ok, pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
       assert value == 0
 
-      SampleAggregate.evaluate(agg_id, %Command{
+      SampleAggregate.evaluate(%Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       })
 
-      SampleAggregate.evaluate(agg_id, %Command{
+      SampleAggregate.evaluate(%Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       })
 
       SampleAggregate.snapshot(agg_id)
 
-      GenServer.stop(pid)
+      agg_id |> Root.whereis(SampleAggregate) |> GenServer.stop()
 
       {:ok, _pid} = SampleAggregate.start_link(agg_id)
 
-      SampleAggregate.evaluate(agg_id, %Command{
+      SampleAggregate.evaluate(%Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       })
@@ -83,23 +80,23 @@ defmodule Maestro.AggregateTest do
     end
 
     test "recover an intermediate state" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       base_command = %Command{
         type: "increment_counter",
-        sequence: 1,
         aggregate_id: agg_id,
         data: %{}
       }
 
-      commands =
-        base_command
-        |> repeat(10)
-        |> Enum.with_index(1)
-        |> Enum.map(fn {c, i} -> %{c | sequence: i} end)
+      commands = repeat(base_command, 10)
 
       for com <- commands do
-        :ok = SampleAggregate.evaluate(agg_id, com)
+        res = SampleAggregate.evaluate(com)
+
+        case res do
+          :ok -> :ok
+          {:error, err, stack} -> reraise err, stack
+        end
       end
 
       {:ok, %{"value" => value}} = SampleAggregate.replay(agg_id, 2)
@@ -111,31 +108,36 @@ defmodule Maestro.AggregateTest do
 
   describe "communicating/handling failure" do
     test "invalid command" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "invalid",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err == InvalidHandlerError.exception(type: "invalid")
+
+      assert_raise(ArgumentError, fn ->
+        SampleAggregate.evaluate(%{
+          type: "increment_counter",
+          data: %{}
+        })
+      end)
     end
 
     test "handler rejected command" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "conditional_increment",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{"do_inc" => false}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err ==
                InvalidCommandError.exception(
@@ -144,16 +146,15 @@ defmodule Maestro.AggregateTest do
     end
 
     test "handler raised an unexpected error" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "raise_command",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{"raise" => true}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err ==
                ArgumentError.exception(
@@ -162,20 +163,20 @@ defmodule Maestro.AggregateTest do
     end
 
     test "store error" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "increment_counter",
-        sequence: 2,
         aggregate_id: agg_id,
         data: %{}
       }
 
       with_mock Maestro.Store,
+        max_sequence: fn -> 2_147_483_647 end,
         get_snapshot: fn _, _, _ ->
           raise(ConnectionError, "some")
         end do
-        {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+        {:error, err, _stack} = SampleAggregate.evaluate(com)
         assert err == ConnectionError.exception("some")
       end
     end
@@ -189,29 +190,28 @@ defmodule Maestro.AggregateTest do
 
   describe "projections" do
     test "strong projections are invoked/called" do
-      {:ok, _pid, agg_id} = SampleAggregate.new()
+      {:ok, agg_id} = SampleAggregate.new()
 
       com = %Command{
         type: "name_counter",
-        sequence: 0,
         aggregate_id: agg_id,
         data: %{"name" => "sample"}
       }
 
-      :ok = SampleAggregate.evaluate(agg_id, com)
+      :ok = SampleAggregate.evaluate(com)
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id, com)
+      {:error, err, _stack} = SampleAggregate.evaluate(com)
 
       assert err ==
                InvalidCommandError.exception(
                  message: "altering names is prohibited"
                )
 
-      {:ok, _pid, agg_id_2} = SampleAggregate.new()
+      {:ok, agg_id_2} = SampleAggregate.new()
 
       com_2 = Map.put(com, :aggregate_id, agg_id_2)
 
-      {:error, err, _stack} = SampleAggregate.evaluate(agg_id_2, com_2)
+      {:error, err, _stack} = SampleAggregate.evaluate(com_2)
 
       assert err.__struct__ == Ecto.ConstraintError
 

@@ -16,16 +16,12 @@ defmodule Maestro.SampleAggregate.Commands.NameCounter do
   end
 
   def eval(aggregate, %{data: %{"name" => new_name}}) do
-    with {:ok, ts} <- HLClock.now() do
-      [
-        %Event{
-          timestamp: ts,
-          aggregate_id: aggregate.id,
-          sequence: aggregate.sequence + 1,
-          type: "counter_named",
-          body: %{"name" => new_name}
-        }
-      ]
-    end
+    [
+      %Event{
+        aggregate_id: aggregate.id,
+        type: "counter_named",
+        body: %{"name" => new_name}
+      }
+    ]
   end
 end

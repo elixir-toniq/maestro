@@ -8,9 +8,9 @@ defmodule Maestro.PostgresTest do
 
   import Maestro.Generators
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias Maestro.{Repo, Store}
   alias Maestro.Types.{Event, Snapshot}
-  alias Ecto.Adapters.SQL.Sandbox
 
   setup do
     Application.put_env(

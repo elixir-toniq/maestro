@@ -38,24 +38,21 @@ defmodule Maestro.Generators do
                 min_length: 1
               ) do
       com_flags
-      |> Enum.with_index(1)
       |> Enum.map(&to_command(&1, agg_id))
     end
   end
 
-  def to_command({true, seq}, agg_id) do
+  def to_command(true, agg_id) do
     %Command{
       type: "increment_counter",
-      sequence: seq,
       aggregate_id: agg_id,
       data: %{}
     }
   end
 
-  def to_command({false, seq}, agg_id) do
+  def to_command(false, agg_id) do
     %Command{
       type: "decrement_counter",
-      sequence: seq,
       aggregate_id: agg_id,
       data: %{}
     }

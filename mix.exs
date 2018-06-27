@@ -1,7 +1,7 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "0.1.2"
+  @version "0.2.0"
   @source_url "https://github.com/toniqsystems/maestro"
 
   def project do
@@ -59,7 +59,7 @@ defmodule Maestro.Mixfile do
 
   defp description do
     """
-    Maestro: CQRS & event storage
+    Maestro: event sourcing
     """
   end
 
