@@ -98,7 +98,7 @@ defmodule Maestro.Aggregate.Root do
           Root.persist_snapshot(snap)
         end
       rescue
-        err -> {:error, err, System.stacktrace()}
+        err -> {:error, err, __STACKTRACE__}
       end
 
       def call(agg_id, msg) do
@@ -146,7 +146,7 @@ defmodule Maestro.Aggregate.Root do
         {:reply, {:ok, agg.state}, agg}
       rescue
         err ->
-          {:reply, {:error, err, System.stacktrace()}, agg}
+          {:reply, {:error, err, __STACKTRACE__}, agg}
       end
 
       def handle_call(:get_current, _from, agg) do
@@ -156,20 +156,20 @@ defmodule Maestro.Aggregate.Root do
       def handle_call({:replay, seq}, _from, agg) do
         {:reply, {:ok, Root.replay(agg, seq)}, agg}
       rescue
-        err -> {:reply, {:error, err, System.stacktrace()}, agg}
+        err -> {:reply, {:error, err, __STACKTRACE__}, agg}
       end
 
       def handle_call(:get_snapshot, _from, agg) do
         body = prepare_snapshot(agg.state)
         {:reply, {:ok, Root.to_snapshot(agg, body)}, agg}
       rescue
-        err -> {:reply, {:error, err, System.stacktrace()}, agg}
+        err -> {:reply, {:error, err, __STACKTRACE__}, agg}
       end
 
       def handle_call({:eval_command, command}, _from, agg) do
         {:reply, :ok, Root.eval_command(agg, command)}
       rescue
-        err -> {:reply, {:error, err, System.stacktrace()}, agg}
+        err -> {:reply, {:error, err, __STACKTRACE__}, agg}
       end
 
       def handle_info(:init, agg), do: {:noreply, Root.update_aggregate(agg)}
@@ -411,7 +411,7 @@ defmodule Maestro.Aggregate.Root do
       {:module, module} -> module
     end
   rescue
-    _ -> reraise(InvalidHandlerError, [type: type], System.stacktrace())
+    _ -> reraise(InvalidHandlerError, [type: type], __STACKTRACE__)
   end
 
   @doc """

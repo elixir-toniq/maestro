@@ -23,6 +23,7 @@ defmodule Maestro.Types.Event do
           timestamp: HLClock.Timestamp.t(),
           aggregate_id: aggregate_id(),
           sequence: sequence(),
+          type: String.t(),
           body: map()
         }
 
