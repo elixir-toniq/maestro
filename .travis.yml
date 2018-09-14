@@ -1,8 +1,8 @@
 language: elixir
 elixir:
-  - 1.6.0
+  - 1.7.0
 otp_release:
-  - 20.0
+  - 21.0
 
 services:
   - postgresql
@@ -15,5 +15,4 @@ script:
   - "mix format --check-formatted"
   - "mix test"
   - "mix credo --strict"
-  - "travis_wait mix dialyzer --halt-exit-status"
   - "mix coveralls.travis"
