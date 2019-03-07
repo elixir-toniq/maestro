@@ -1,5 +1,7 @@
 defmodule Maestro.Repo do
-  use Ecto.Repo, otp_app: :maestro
+  use Ecto.Repo,
+    otp_app: :maestro,
+    adapter: Ecto.Adapters.Postgres
 
   @doc """
   Dynamically loads the repository url from the
