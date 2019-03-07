@@ -47,7 +47,7 @@ defmodule Maestro.Types.Event do
     |> unique_constraint(
       :sequence,
       name: :aggregate_sequence_index,
-      message: "dupe_seq_agg"
+      message: :dupe_seq_agg
     )
   end
 end

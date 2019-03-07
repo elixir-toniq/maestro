@@ -44,12 +44,12 @@ defmodule Maestro.Mixfile do
 
   defp deps do
     [
-      {:ecto, "~> 3.0"},
-      {:ecto_sql, "~> 3.0"},
+      {:ecto, "~> 2.2"},
       {:postgrex, ">= 0.0.0"},
+      {:poison, "~> 3.0"},
       {:ecto_hlclock, "~> 0.1"},
       {:mock, "~> 0.3", only: :test, runtime: false},
-      {:credo, "~> 1.0", only: [:dev, :test]},
+      {:credo, "~> 0.5", only: [:dev, :test]},
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
       {:benchee, "~> 0.9", only: :dev},

@@ -9,6 +9,7 @@ config :maestro, :repo, Maestro.Repo
 
 # Configure your database
 config :maestro, Maestro.Repo,
+  adapter: Ecto.Adapters.Postgres,
   username: "postgres",
   password: "postgres",
   database: "maestro_test",
