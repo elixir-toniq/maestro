@@ -1,7 +1,7 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "0.2.1"
+  @version "0.3.0"
   @source_url "https://github.com/toniqsystems/maestro"
 
   def project do
@@ -52,7 +52,7 @@ defmodule Maestro.Mixfile do
       {:credo, "~> 1.0", only: [:dev, :test]},
       {:stream_data, "~> 0.3", only: [:test]},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
-      {:benchee, "~> 0.9", only: :dev},
+      {:benchee, "~> 1.0", only: :dev},
       {:ex_doc, "~> 0.16", only: :dev},
       {:excoveralls, "~> 0.8", only: :test}
     ]
