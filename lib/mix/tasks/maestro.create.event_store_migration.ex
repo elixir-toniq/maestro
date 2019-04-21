@@ -69,7 +69,8 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
     {parsed, _, _} =
       OptionParser.parse(
         args,
-        aliases: [n: :name]
+        aliases: [n: :name],
+        strict: [name: :string]
       )
 
     Keyword.get(parsed, :name, "event_log_and_snapshots")
