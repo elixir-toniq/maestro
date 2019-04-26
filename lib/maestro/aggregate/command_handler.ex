@@ -6,7 +6,7 @@ defmodule Maestro.Aggregate.CommandHandler do
 
   @type root :: Maestro.Aggregate.Root.t()
   @type command :: Maestro.Types.Command.t()
-  @type event :: Maestro.Types.Event.t()
+  @type uncommitted_event :: Maestro.Types.Event.uncommitted()
 
   @doc """
   Command handlers in maestro should implement an `eval` function that expects
@@ -15,5 +15,5 @@ defmodule Maestro.Aggregate.CommandHandler do
   raise an error which can be used to short circuit the command processing
   cycle.
   """
-  @callback eval(root(), command()) :: [event()]
+  @callback eval(root(), command()) :: [uncommitted_event()]
 end
