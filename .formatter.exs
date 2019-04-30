@@ -1,9 +1,6 @@
 [
-  inputs: [
-    "test/**/*.{ex,exs}",
-    "lib/**/*.{ex,exs}",
-    "config/**/*.exs",
-    "mix.exs"
-  ],
-  line_length: 80,
+  import_deps: [:ecto],
+  inputs: ["*.{ex,exs}", "priv/*/seeds.exs", "{config,lib,test}/**/*.{ex,exs}"],
+  subdirectories: ["priv/*/migrations"],
+  line_length: 80
 ]

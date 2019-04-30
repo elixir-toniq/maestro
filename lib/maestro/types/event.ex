@@ -27,6 +27,17 @@ defmodule Maestro.Types.Event do
           body: map()
         }
 
+  # timestamp and sequence are nil since command handlers don't generate HLC's
+  # or decide sequence numbers; the database doesn't actually allow these to be
+  # nil outside of this particular use case
+  @type uncommitted :: %__MODULE__{
+          aggregate_id: aggregate_id(),
+          type: String.t(),
+          body: map(),
+          timestamp: nil,
+          sequence: nil
+        }
+
   @primary_key false
   schema "event_log" do
     field(:timestamp, Ecto.HLClock, primary_key: true)
