@@ -19,7 +19,6 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
     ]
 
   import Mix.Ecto, only: [parse_repo: 1, ensure_repo: 2]
-  import Ecto.Migrator, only: [migrations_path: 1]
 
   @change """
       create table(:event_log, primary_key: false) do
