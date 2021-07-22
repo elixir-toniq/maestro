@@ -108,7 +108,7 @@ defmodule Maestro.Aggregate.Root do
       end
 
       def new do
-        with {:ok, agg_id} <- HLClock.now() do
+        with agg_id <- HLCID.generate() do
           Root.whereis(agg_id, __MODULE__)
           {:ok, agg_id}
         end
@@ -359,7 +359,7 @@ defmodule Maestro.Aggregate.Root do
     events
     |> Enum.with_index(agg.sequence + 1)
     |> Enum.reduce([], fn {event, seq}, evs ->
-      with {:ok, ts} <- HLClock.now() do
+      with ts <- HLCID.generate() do
         [%{event | timestamp: ts, sequence: seq} | evs]
       end
     end)
