@@ -18,8 +18,7 @@ defmodule Maestro.Generators do
     gen all time <- integer(0..max_time()),
             counter <- integer(0..max_counter()),
             node_id <- integer(0..max_node()) do
-      {:ok, timestamp} = Timestamp.new(time, counter, node_id)
-      timestamp
+      Timestamp.new(time, counter, node_id)
     end
   end
 
