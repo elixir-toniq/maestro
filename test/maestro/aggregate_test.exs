@@ -230,17 +230,9 @@ defmodule Maestro.AggregateTest do
     Enum.map(0..(times - 1), fn _ -> val end)
   end
 
-  def increments(commands) do
-    commands
-    |> Enum.filter(&is_increment/1)
-    |> Enum.count()
-  end
+  def increments(commands), do: Enum.count(commands, &is_increment/1)
 
-  def decrements(commands) do
-    commands
-    |> Enum.filter(&is_decrement/1)
-    |> Enum.count()
-  end
+  def decrements(commands), do: Enum.count(commands, &is_decrement/1)
 
   defp is_increment(%{type: t}), do: t == "increment_counter"
 
