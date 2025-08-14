@@ -20,6 +20,8 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
 
   import Mix.Ecto, only: [parse_repo: 1, ensure_repo: 2]
 
+  alias Ecto.Migrator
+
   @change """
       create table(:event_log, primary_key: false) do
         add :timestamp, :binary, null: false, primary_key: true
@@ -52,7 +54,9 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
     migration_name = parse_migration_name(args)
 
     file =
-      Path.join("priv/repo/migrations/", "#{timestamp()}_#{migration_name}.exs")
+      repo
+      |> Migrator.migrations_path()
+      |> Path.join("#{timestamp()}_#{migration_name}.exs")
 
     create_directory(Path.dirname(file))
 
