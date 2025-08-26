@@ -27,7 +27,7 @@ defmodule Maestro.Mixfile do
         coveralls: :test,
         "coveralls.html": :test,
         "coveralls.post": :test,
-        "coveralls.travis": :test
+        "coveralls.github": :test
       ]
     ]
   end
@@ -50,8 +50,9 @@ defmodule Maestro.Mixfile do
       {:ecto_hlclock, "~> 0.1"},
       {:jason, "~> 1.1"},
       {:mock, "~> 0.3", only: :test, runtime: false},
+      {:castore, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.0", only: [:dev, :test]},
-      {:stream_data, "~> 1.0", only: [:test]},
+      {:stream_data, "~> 1.0", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:benchee, "~> 1.0", only: :dev},
       {:ex_doc, "~> 0.16", only: :dev},
