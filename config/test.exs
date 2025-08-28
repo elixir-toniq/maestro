@@ -1,7 +1,7 @@
-use Mix.Config
+import Config
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :warning
 
 config :maestro, ecto_repos: [Maestro.Repo]
 

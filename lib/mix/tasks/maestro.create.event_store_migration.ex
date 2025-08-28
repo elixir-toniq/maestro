@@ -20,6 +20,8 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
 
   import Mix.Ecto, only: [parse_repo: 1, ensure_repo: 2]
 
+  alias Ecto.Migrator
+
   @change """
       create table(:event_log, primary_key: false) do
         add :timestamp, :binary, null: false, primary_key: true
@@ -35,9 +37,9 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
         add :body, :map, null: false
       end
 
-      Ecto.HLClock.Migration.create_hlc_constraint(:event_log, :timestamp)
-      Ecto.HLClock.Migration.create_hlc_constraint(:event_log, :aggregate_id)
-      Ecto.HLClock.Migration.create_hlc_constraint(:snapshots, :aggregate_id)
+      EctoHLClock.Migration.create_hlc_constraint(:event_log, :timestamp)
+      EctoHLClock.Migration.create_hlc_constraint(:event_log, :aggregate_id)
+      EctoHLClock.Migration.create_hlc_constraint(:snapshots, :aggregate_id)
 
       create constraint(:event_log, :sequence, check: "sequence > 0")
       create unique_index(:event_log, [:aggregate_id, :sequence],
@@ -52,7 +54,9 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
     migration_name = parse_migration_name(args)
 
     file =
-      Path.join("priv/repo/migrations/", "#{timestamp()}_#{migration_name}.exs")
+      repo
+      |> Migrator.migrations_path()
+      |> Path.join("#{timestamp()}_#{migration_name}.exs")
 
     create_directory(Path.dirname(file))
 

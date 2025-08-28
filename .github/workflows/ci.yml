@@ -1,0 +1,70 @@
+name: Elixir CI
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    name: Elixir ${{ matrix.elixir }} / OTP ${{ matrix.otp }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir: "1.18.4"
+            otp: "28.0"
+          - elixir: "1.18.2"
+            otp: "27.2"
+          - elixir: "1.17.3"
+            otp: "26.2"
+          - elixir: "1.17.3"
+            otp: "25.3"
+          - elixir: "1.16.2"
+            otp: "26.2"
+          - elixir: "1.16.2"
+            otp: "25.3"
+          - elixir: "1.16.2"
+            otp: "24.3"
+
+    services:
+      postgres:
+        image: postgres:9.6
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "${{ matrix.elixir }}"
+          otp-version: "${{ matrix.otp }}"
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile with warnings as errors
+        run: mix compile --warnings-as-errors --force
+
+      - name: Check formatting
+        run: mix format --check-formatted
+
+      - name: Run tests
+        run: mix test
+
+      - name: Run credo
+        run: mix credo --strict
+
+      - name: Run coveralls
+        run: mix coveralls.github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

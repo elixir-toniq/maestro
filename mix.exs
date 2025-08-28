@@ -1,14 +1,14 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "0.3.4"
-  @source_url "https://github.com/toniqsystems/maestro"
+  @version "0.4.0"
+  @source_url "https://github.com/elixir-toniq/maestro"
 
   def project do
     [
       app: :maestro,
       version: @version,
-      elixir: "~> 1.7",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -27,7 +27,7 @@ defmodule Maestro.Mixfile do
         coveralls: :test,
         "coveralls.html": :test,
         "coveralls.post": :test,
-        "coveralls.travis": :test
+        "coveralls.github": :test
       ]
     ]
   end
@@ -50,9 +50,10 @@ defmodule Maestro.Mixfile do
       {:ecto_hlclock, "~> 0.1"},
       {:jason, "~> 1.1"},
       {:mock, "~> 0.3", only: :test, runtime: false},
+      {:castore, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.0", only: [:dev, :test]},
-      {:stream_data, "~> 0.3", only: [:test]},
-      {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
+      {:stream_data, "~> 1.0", only: [:dev, :test]},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:benchee, "~> 1.0", only: :dev},
       {:ex_doc, "~> 0.16", only: :dev},
       {:excoveralls, "~> 0.8", only: :test}
