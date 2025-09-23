@@ -87,11 +87,13 @@ defmodule Maestro.Aggregate.Root do
 
       def replay(agg_id, seq), do: call(agg_id, {:replay, seq})
 
-      def evaluate(%Maestro.Types.Command{} = command) do
-        call(command.aggregate_id, {:eval_command, command})
+      def evaluate(command, opts \\ [])
+
+      def evaluate(%Maestro.Types.Command{} = command, opts) do
+        call(command.aggregate_id, {:eval_command, command, opts})
       end
 
-      def evaluate(_), do: raise(ArgumentError, "invalid command")
+      def evaluate(_, _), do: raise(ArgumentError, "invalid command")
 
       def snapshot(agg_id) do
         with {:ok, snap} <- call(agg_id, :get_snapshot) do
@@ -166,8 +168,17 @@ defmodule Maestro.Aggregate.Root do
         err -> {:reply, {:error, err, __STACKTRACE__}, agg}
       end
 
-      def handle_call({:eval_command, command}, _from, agg) do
-        {:reply, :ok, Root.eval_command(agg, command)}
+      def handle_call({:eval_command, command, opts}, _from, agg) do
+        {:ok, agg, events} = Root.eval_command(agg, command)
+
+        result =
+          case opts[:return] do
+            :state -> {:ok, agg.state}
+            :events -> {:ok, events}
+            _ -> :ok
+          end
+
+        {:reply, result, agg}
       rescue
         err -> {:reply, {:error, err, __STACKTRACE__}, agg}
       end
@@ -234,10 +245,23 @@ defmodule Maestro.Aggregate.Root do
   """
   @callback replay(id(), sequence()) :: {:ok, any()} | {:error, any(), stack()}
 
+  @type evaluate_opt :: {:return, :events | :state}
+  @type evaluate_opts :: [evaluate_opt()]
+
   @doc """
-  Evaluate the command within the aggregate's context.
+  Evaluate the command within the aggregate's context. With the option `:return` return either the events or the state.
   """
-  @callback evaluate(command()) :: :ok | {:error, any(), stack()}
+  @callback evaluate(command()) ::
+              :ok
+              | {:ok, [Maestro.Types.Event.t()]}
+              | {:ok, state :: any()}
+              | {:error, any(), stack()}
+
+  @callback evaluate(command(), evaluate_opts()) ::
+              :ok
+              | {:ok, [Maestro.Types.Event.t()]}
+              | {:ok, state :: any()}
+              | {:error, any(), stack()}
 
   @doc """
   Using the aggregate root's `prepare_snapshot` function, generate and store a
@@ -345,8 +369,9 @@ defmodule Maestro.Aggregate.Root do
     with agg <- update_aggregate(agg),
          com_module <- lookup_module(agg.command_prefix, command.type),
          events <- com_module.eval(agg, command),
-         events <- prepare_events(agg, events) do
-      persist_events(agg, command, events)
+         events <- prepare_events(agg, events),
+         agg <- persist_events(agg, command, events) do
+      {:ok, agg, events}
     end
   end
 
@@ -371,9 +396,12 @@ defmodule Maestro.Aggregate.Root do
         apply_events(agg, events)
 
       {:error, :retry_command} ->
+        {:ok, agg, _events} =
+          agg
+          |> update_aggregate()
+          |> eval_command(command)
+
         agg
-        |> update_aggregate()
-        |> eval_command(command)
     end
   end
 

@@ -79,6 +79,37 @@ defmodule Maestro.AggregateTest do
       assert value == 3
     end
 
+    test "return options" do
+      {:ok, agg_id} = SampleAggregate.new()
+
+      {:ok, %{"value" => value}} = SampleAggregate.get(agg_id)
+      assert value == 0
+
+      {:ok, events} =
+        SampleAggregate.evaluate(
+          %Command{
+            type: "increment_counter",
+            aggregate_id: agg_id,
+            data: %{}
+          },
+          return: :events
+        )
+
+      assert [%{type: "counter_incremented"}] = events
+
+      {:ok, state} =
+        SampleAggregate.evaluate(
+          %Command{
+            type: "increment_counter",
+            aggregate_id: agg_id,
+            data: %{}
+          },
+          return: :state
+        )
+
+      assert %{"value" => 2} = state
+    end
+
     test "recover an intermediate state" do
       {:ok, agg_id} = SampleAggregate.new()
 
