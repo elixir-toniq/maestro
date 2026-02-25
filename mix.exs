@@ -21,14 +21,7 @@ defmodule Maestro.Mixfile do
         source_url: @source_url,
         extras: ["README.md"]
       ],
-      dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"],
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.html": :test,
-        "coveralls.post": :test,
-        "coveralls.github": :test
-      ]
+      dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"]
     ]
   end
 
@@ -55,8 +48,7 @@ defmodule Maestro.Mixfile do
       {:stream_data, "~> 1.0", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:benchee, "~> 1.0", only: :dev},
-      {:ex_doc, "~> 0.16", only: :dev},
-      {:excoveralls, "~> 0.8", only: :test}
+      {:ex_doc, "~> 0.16", only: :dev}
     ]
   end
 

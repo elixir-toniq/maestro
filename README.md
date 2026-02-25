@@ -12,7 +12,6 @@ for testing purposes only.
 ## Status
 [![Hex](http://img.shields.io/hexpm/v/maestro.svg?style=flat)](https://hex.pm/packages/maestro)
 [![Elixir CI](https://github.com/elixir-toniq/maestro/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/elixir-toniq/maestro/actions/workflows/elixir.yml)
-[![Coverage Status](https://coveralls.io/repos/github/elixir-toniq/maestro/badge.svg?branch=main)](https://coveralls.io/github/elixir-toniq/maestro?branch=master)
 
 Documentation is available [here](https://hexdocs.pm/maestro/).
 
