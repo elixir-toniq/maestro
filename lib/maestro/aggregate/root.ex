@@ -49,8 +49,6 @@ defmodule Maestro.Aggregate.Root do
 
   @type id :: HLClock.Timestamp.t()
 
-  @type stack :: Exception.stacktrace()
-
   @type sequence :: non_neg_integer()
 
   @type command :: Maestro.Types.Command.t()
@@ -100,7 +98,7 @@ defmodule Maestro.Aggregate.Root do
           Root.persist_snapshot(snap)
         end
       rescue
-        err -> {:error, err, __STACKTRACE__}
+        err -> {:error, err}
       end
 
       def call(agg_id, msg) do
@@ -148,7 +146,7 @@ defmodule Maestro.Aggregate.Root do
         {:reply, {:ok, agg.state}, agg}
       rescue
         err ->
-          {:reply, {:error, err, __STACKTRACE__}, agg}
+          {:reply, {:error, err}, agg}
       end
 
       def handle_call(:get_current, _from, agg) do
@@ -158,29 +156,33 @@ defmodule Maestro.Aggregate.Root do
       def handle_call({:replay, seq}, _from, agg) do
         {:reply, {:ok, Root.replay(agg, seq)}, agg}
       rescue
-        err -> {:reply, {:error, err, __STACKTRACE__}, agg}
+        err -> {:reply, {:error, err}, agg}
       end
 
       def handle_call(:get_snapshot, _from, agg) do
         body = prepare_snapshot(agg.state)
         {:reply, {:ok, Root.to_snapshot(agg, body)}, agg}
       rescue
-        err -> {:reply, {:error, err, __STACKTRACE__}, agg}
+        err -> {:reply, {:error, err}, agg}
       end
 
       def handle_call({:eval_command, command, opts}, _from, agg) do
-        {:ok, agg, events} = Root.eval_command(agg, command)
+        case Root.eval_command(agg, command) do
+          {:ok, agg, events} ->
+            result =
+              case opts[:return] do
+                :state -> {:ok, agg.state}
+                :events -> {:ok, events}
+                _ -> :ok
+              end
 
-        result =
-          case opts[:return] do
-            :state -> {:ok, agg.state}
-            :events -> {:ok, events}
-            _ -> :ok
-          end
+            {:reply, result, agg}
 
-        {:reply, result, agg}
+          {:error, _reason} = error ->
+            {:reply, error, agg}
+        end
       rescue
-        err -> {:reply, {:error, err, __STACKTRACE__}, agg}
+        err -> {:reply, {:error, err}, agg}
       end
 
       def handle_info(:init, agg), do: {:noreply, Root.update_aggregate(agg)}
@@ -229,21 +231,21 @@ defmodule Maestro.Aggregate.Root do
   A (potentially) stale read of the aggregate's state. If you want to ensure the
   state is as up-to-date as possible, see `fetch/1`.
   """
-  @callback get(id()) :: {:ok, any()} | {:error, any(), stack()}
+  @callback get(id()) :: {:ok, any()} | {:error, any()}
 
   @doc """
   Forces the aggregate to retrieve any events. Since Maestro operates in a
   node-local manner, it's entirely possible some other node has processed
   commands/events.
   """
-  @callback fetch(id()) :: {:ok, any()} | {:error, any(), stack()}
+  @callback fetch(id()) :: {:ok, any()} | {:error, any()}
 
   @doc """
   Recover a past version of the aggregate's state by specifying a maximum
   sequence number. The aggregate's snapshot and any/all events will be used to
   get the state back to that point.
   """
-  @callback replay(id(), sequence()) :: {:ok, any()} | {:error, any(), stack()}
+  @callback replay(id(), sequence()) :: {:ok, any()} | {:error, any()}
 
   @type evaluate_opt :: {:return, :events | :state}
   @type evaluate_opts :: [evaluate_opt()]
@@ -255,20 +257,20 @@ defmodule Maestro.Aggregate.Root do
               :ok
               | {:ok, [Maestro.Types.Event.t()]}
               | {:ok, state :: any()}
-              | {:error, any(), stack()}
+              | {:error, any()}
 
   @callback evaluate(command(), evaluate_opts()) ::
               :ok
               | {:ok, [Maestro.Types.Event.t()]}
               | {:ok, state :: any()}
-              | {:error, any(), stack()}
+              | {:error, any()}
 
   @doc """
   Using the aggregate root's `prepare_snapshot` function, generate and store a
   snapshot. Useful if there are a lot of events, big events, or just a healthy
   amount of aggregate state to compose.
   """
-  @callback snapshot(id()) :: :ok | {:error, any(), stack()}
+  @callback snapshot(id()) :: :ok | {:error, any()}
 
   @doc """
   If you extend the aggregate to provide other functionality, `call` is
@@ -366,12 +368,16 @@ defmodule Maestro.Aggregate.Root do
 
   @doc false
   def eval_command(agg, command) do
-    with agg <- update_aggregate(agg),
-         com_module <- lookup_module(agg.command_prefix, command.type),
-         events <- com_module.eval(agg, command),
-         events <- prepare_events(agg, events),
-         agg <- persist_events(agg, command, events) do
-      {:ok, agg, events}
+    agg = update_aggregate(agg)
+    com_module = lookup_module(agg.command_prefix, command.type)
+
+    case com_module.eval(agg, command) do
+      {:ok, events} ->
+        events = prepare_events(agg, events)
+        persist_events(agg, command, events)
+
+      {:error, _reason} = error ->
+        error
     end
   end
 
@@ -393,15 +399,12 @@ defmodule Maestro.Aggregate.Root do
   defp persist_events(agg, command, events) do
     case Store.commit_all(events, agg.projections) do
       :ok ->
-        apply_events(agg, events)
+        {:ok, apply_events(agg, events), events}
 
       {:error, :retry_command} ->
-        {:ok, agg, _events} =
-          agg
-          |> update_aggregate()
-          |> eval_command(command)
-
         agg
+        |> update_aggregate()
+        |> eval_command(command)
     end
   end
 

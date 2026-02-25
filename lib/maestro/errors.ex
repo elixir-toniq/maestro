@@ -12,12 +12,3 @@ defmodule Maestro.InvalidHandlerError do
     """
   end
 end
-
-defmodule Maestro.InvalidCommandError do
-  @moduledoc """
-  The preferred exception for informing the client that their command was
-  rejected for any reason.
-  """
-
-  defexception message: ""
-end

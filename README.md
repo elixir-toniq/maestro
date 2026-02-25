@@ -20,7 +20,7 @@ Documentation is available [here](https://hexdocs.pm/maestro/).
 
 ```elixir
 def deps do
-  [{:maestro, "~> 0.2"}]
+  [{:maestro, "~> 1.0"}]
 end
 ```
 
@@ -69,13 +69,14 @@ defmodule MyApp.Aggregate.Commands.IncrementCounter do
   alias Maestro.Types.Event
 
   def eval(aggregate, _command) do
-    [
-      %Event{
-        aggregate_id: aggregate.id,
-        type: "counter_incremented",
-        body: %{}
-      }
-    ]
+    {:ok,
+     [
+       %Event{
+         aggregate_id: aggregate.id,
+         type: "counter_incremented",
+         body: %{}
+       }
+     ]}
   end
 end
 

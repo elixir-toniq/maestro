@@ -11,9 +11,9 @@ defmodule Maestro.Aggregate.CommandHandler do
   @doc """
   Command handlers in maestro should implement an `eval` function that expects
   to receive the current `Root` object complete with sequence number and
-  aggregate ID and the incoming command. They should return a list of events or
-  raise an error which can be used to short circuit the command processing
-  cycle.
+  aggregate ID and the incoming command. They should return `{:ok, events}` on
+  success or `{:error, reason}` to reject the command.
   """
-  @callback eval(root(), command()) :: [uncommitted_event()]
+  @callback eval(root(), command()) ::
+              {:ok, [uncommitted_event()]} | {:error, any()}
 end

@@ -3,9 +3,7 @@ defmodule Maestro.SampleAggregate.Commands.ConditionalIncrement do
 
   @behaviour Maestro.Aggregate.CommandHandler
 
-  alias Maestro.InvalidCommandError
-
   def eval(_aggregate, _com) do
-    raise InvalidCommandError, "command incorrectly specified"
+    {:error, :incorrectly_specified}
   end
 end
