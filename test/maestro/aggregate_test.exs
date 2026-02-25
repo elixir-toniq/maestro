@@ -10,7 +10,7 @@ defmodule Maestro.AggregateTest do
   alias Ecto.Adapters.SQL.Sandbox
   alias HLClock.Server, as: HLCServer
   alias Maestro.Aggregate.Root
-  alias Maestro.{InvalidCommandError, InvalidHandlerError}
+  alias Maestro.InvalidHandlerError
   alias Maestro.{Repo, SampleAggregate}
   alias Maestro.Types.{Command, Event}
 
@@ -126,7 +126,7 @@ defmodule Maestro.AggregateTest do
 
         case res do
           :ok -> :ok
-          {:error, err, stack} -> reraise err, stack
+          {:error, err} -> raise err
         end
       end
 
@@ -147,7 +147,7 @@ defmodule Maestro.AggregateTest do
         data: %{}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(com)
+      {:error, err} = SampleAggregate.evaluate(com)
 
       assert err == InvalidHandlerError.exception(type: "invalid")
 
@@ -168,12 +168,7 @@ defmodule Maestro.AggregateTest do
         data: %{"do_inc" => false}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(com)
-
-      assert err ==
-               InvalidCommandError.exception(
-                 message: "command incorrectly specified"
-               )
+      assert {:error, :incorrectly_specified} = SampleAggregate.evaluate(com)
     end
 
     test "handler raised an unexpected error" do
@@ -185,7 +180,7 @@ defmodule Maestro.AggregateTest do
         data: %{"raise" => true}
       }
 
-      {:error, err, _stack} = SampleAggregate.evaluate(com)
+      {:error, err} = SampleAggregate.evaluate(com)
 
       assert err ==
                ArgumentError.exception(
@@ -207,7 +202,7 @@ defmodule Maestro.AggregateTest do
         get_snapshot: fn _, _, _ ->
           raise(ConnectionError, "some")
         end do
-        {:error, err, _stack} = SampleAggregate.evaluate(com)
+        {:error, err} = SampleAggregate.evaluate(com)
         assert err == ConnectionError.exception("some")
       end
     end
@@ -231,18 +226,13 @@ defmodule Maestro.AggregateTest do
 
       :ok = SampleAggregate.evaluate(com)
 
-      {:error, err, _stack} = SampleAggregate.evaluate(com)
-
-      assert err ==
-               InvalidCommandError.exception(
-                 message: "altering names is prohibited"
-               )
+      assert {:error, :name_already_set} = SampleAggregate.evaluate(com)
 
       {:ok, agg_id_2} = SampleAggregate.new()
 
       com_2 = Map.put(com, :aggregate_id, agg_id_2)
 
-      {:error, err, _stack} = SampleAggregate.evaluate(com_2)
+      {:error, err} = SampleAggregate.evaluate(com_2)
 
       assert err.__struct__ == Ecto.ConstraintError
 

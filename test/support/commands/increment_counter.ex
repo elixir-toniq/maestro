@@ -8,12 +8,13 @@ defmodule Maestro.SampleAggregate.Commands.IncrementCounter do
   @behaviour Maestro.Aggregate.CommandHandler
 
   def eval(aggregate, _command) do
-    [
-      %Event{
-        aggregate_id: aggregate.id,
-        type: "counter_incremented",
-        body: %{"message" => "increment"}
-      }
-    ]
+    {:ok,
+     [
+       %Event{
+         aggregate_id: aggregate.id,
+         type: "counter_incremented",
+         body: %{"message" => "increment"}
+       }
+     ]}
   end
 end

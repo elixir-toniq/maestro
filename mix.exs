@@ -1,7 +1,7 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "1.0.0"
   @source_url "https://github.com/elixir-toniq/maestro"
 
   def project do
@@ -21,13 +21,9 @@ defmodule Maestro.Mixfile do
         source_url: @source_url,
         extras: ["README.md"]
       ],
-      dialyzer: [ignore_warnings: "dialyzer.ignore-warnings"],
-      test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        coveralls: :test,
-        "coveralls.html": :test,
-        "coveralls.post": :test,
-        "coveralls.github": :test
+      dialyzer: [
+        plt_add_apps: [:mix, :ex_unit],
+        flags: [:error_handling]
       ]
     ]
   end
@@ -53,10 +49,9 @@ defmodule Maestro.Mixfile do
       {:castore, "~> 1.0", only: [:dev, :test]},
       {:credo, "~> 1.0", only: [:dev, :test]},
       {:stream_data, "~> 1.0", only: [:dev, :test]},
-      {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:benchee, "~> 1.0", only: :dev},
-      {:ex_doc, "~> 0.16", only: :dev},
-      {:excoveralls, "~> 0.8", only: :test}
+      {:ex_doc, "~> 0.16", only: :dev}
     ]
   end
 

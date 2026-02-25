@@ -3,6 +3,8 @@ defmodule Maestro.SampleAggregate.Commands.RaiseCommand do
 
   @behaviour Maestro.Aggregate.CommandHandler
 
+  @dialyzer {:nowarn_function, eval: 2}
+
   def eval(_aggregate, %{data: %{"raise" => _any}}) do
     raise ArgumentError, "commands can raise arbitrary exceptions as well"
   end
