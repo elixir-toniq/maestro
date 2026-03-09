@@ -11,16 +11,9 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
 
   use Mix.Task
 
-  import Mix.Generator,
-    only: [
-      embed_template: 2,
-      create_directory: 1,
-      create_file: 2
-    ]
+  import Mix.Generator, only: [embed_template: 2]
 
-  import Mix.Ecto, only: [parse_repo: 1, ensure_repo: 2]
-
-  alias Ecto.Migrator
+  alias Mix.Tasks.Maestro.MigrationHelpers
 
   @change """
       create table(:event_log, primary_key: false) do
@@ -48,24 +41,16 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
 
   @doc false
   def run(args) do
-    [repo | _] = parse_repo(args)
-    ensure_repo(repo, args)
-
+    repo = MigrationHelpers.resolve_repo(args)
     migration_name = parse_migration_name(args)
-
-    file =
-      repo
-      |> Migrator.migrations_path()
-      |> Path.join("#{timestamp()}_#{migration_name}.exs")
-
-    create_directory(Path.dirname(file))
+    file = MigrationHelpers.migration_path(repo, migration_name)
 
     assigns = [
       mod: Module.concat([repo, Migrations, EventLogAndSnapshots]),
       change: @change
     ]
 
-    create_file(file, migration_template(assigns))
+    MigrationHelpers.write_migration(file, migration_template(assigns))
   end
 
   defp parse_migration_name(args) do
@@ -78,14 +63,6 @@ defmodule Mix.Tasks.Maestro.Create.EventStoreMigration do
 
     Keyword.get(parsed, :name, "event_log_and_snapshots")
   end
-
-  defp timestamp do
-    {{y, m, d}, {hh, mm, ss}} = :calendar.universal_time()
-    "#{y}#{pad(m)}#{pad(d)}#{pad(hh)}#{pad(mm)}#{pad(ss)}"
-  end
-
-  defp pad(i) when i < 10, do: <<?0, ?0 + i>>
-  defp pad(i), do: to_string(i)
 
   embed_template(:migration, """
   defmodule <%= inspect @mod %> do
