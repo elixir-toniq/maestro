@@ -10,10 +10,11 @@ defmodule Maestro.Aggregate.ProjectionHandler do
   """
 
   @type event :: Maestro.Types.Event.t()
+  @type repo :: module() | nil
 
   @doc """
   Projections registered with an aggregate root are invoked for _every_ event,
   so they should ignore unrelated events explicitly.
   """
-  @callback project(event()) :: value :: any()
+  @callback project(repo(), event()) :: value :: any()
 end
