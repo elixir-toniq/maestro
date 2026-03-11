@@ -98,7 +98,7 @@ defmodule Maestro.Store.Postgres do
     repo = get_repo()
 
     multi
-    |> repo.transaction()
+    |> repo.transact()
     |> case do
       {:error, _, %{errors: [sequence: {"dupe_seq_agg", _}]}, _} ->
         {:error, :retry_command}
@@ -114,15 +114,15 @@ defmodule Maestro.Store.Postgres do
   defp with_projections(multi, _events, []), do: multi
 
   defp with_projections(multi, events, projections) do
-    Multi.run(multi, :projections, fn _repo, _completed ->
-      run_projections(events, projections)
+    Multi.run(multi, :projections, fn repo, _completed ->
+      run_projections(repo, events, projections)
     end)
   end
 
-  defp run_projections(events, projections) do
+  defp run_projections(repo, events, projections) do
     for handler <- projections,
         event <- events,
-        do: handler.project(event)
+        do: handler.project(repo, event)
 
     {:ok, :ok}
   rescue

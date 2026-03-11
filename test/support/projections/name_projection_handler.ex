@@ -6,16 +6,15 @@ defmodule Maestro.SampleAggregate.Projections.NameProjectionHandler do
 
   @behaviour Maestro.Aggregate.ProjectionHandler
 
-  alias Maestro.Repo
   alias Maestro.Schemas.NamedAggregate
 
-  def project(%{
+  def project(repo, %{
         aggregate_id: agg_id,
         type: "counter_named",
         body: %{"name" => new_name}
       }) do
-    Repo.insert(%NamedAggregate{name: new_name, aggregate_id: agg_id})
+    repo.insert(%NamedAggregate{name: new_name, aggregate_id: agg_id})
   end
 
-  def project(_), do: nil
+  def project(_, _), do: nil
 end
