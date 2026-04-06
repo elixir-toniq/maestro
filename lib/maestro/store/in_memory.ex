@@ -32,7 +32,10 @@ defmodule Maestro.Store.InMemory do
   end
 
   def commit_snapshot(snapshot) do
-    Agent.get_and_update(__MODULE__, &update_snapshot(&1, snapshot))
+    Agent.get_and_update(
+      __MODULE__,
+      &update_snapshot(&1, normalize_body(snapshot))
+    )
   end
 
   def get_events(id, min_seq, %{max_sequence: max_seq}) do
