@@ -8,7 +8,7 @@ defmodule Maestro.SampleAggregate do
     event_prefix: Maestro.SampleAggregate.Events,
     projections: [Maestro.SampleAggregate.Projections.NameProjectionHandler]
 
-  def initial_state, do: %{"value" => 0, "name" => nil}
+  def initial_state, do: %{"value" => 0, "name" => nil, "tags" => []}
 
   def prepare_snapshot(state), do: state
 

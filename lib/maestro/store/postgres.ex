@@ -19,6 +19,19 @@ defmodule Maestro.Store.Postgres do
     |> Enum.reduce(Multi.new(), &append_changeset/2)
     |> with_projections(events, projections)
     |> apply_all()
+    |> case do
+      {:ok, changes} ->
+        committed =
+          changes
+          |> Map.values()
+          |> Enum.filter(&match?(%Event{}, &1))
+          |> Enum.sort_by(& &1.sequence)
+
+        {:ok, committed}
+
+      error ->
+        error
+    end
   end
 
   def commit_events(events), do: commit_all(events, [])
@@ -104,10 +117,10 @@ defmodule Maestro.Store.Postgres do
         {:error, :retry_command}
 
       {:error, _name, err, _changes_so_far} ->
-        raise err
+        {:error, err}
 
-      {:ok, _} ->
-        :ok
+      {:ok, changes} ->
+        {:ok, changes}
     end
   end
 
@@ -129,7 +142,9 @@ defmodule Maestro.Store.Postgres do
     e -> {:error, e}
   end
 
-  defp append_changeset(cs, mult), do: Multi.insert(mult, changeset_key(cs), cs)
+  defp append_changeset(cs, mult) do
+    Multi.insert(mult, changeset_key(cs), cs, returning: true)
+  end
 
   defp changeset_key(cs) do
     "#{cs.data.aggregate_id}:#{cs.data.sequence}"

@@ -110,6 +110,48 @@ defmodule Maestro.AggregateTest do
       assert %{"value" => 2} = state
     end
 
+    # NOTE: this also demonstrates an important property of the Store, events
+    # are seen in the sequential order even when a single command generates
+    # multiple events
+    test "event bodies with atom keys are normalized" do
+      {:ok, agg_id} = SampleAggregate.new()
+
+      {:ok, events} =
+        SampleAggregate.evaluate(
+          %Command{
+            type: "tag_counter",
+            aggregate_id: agg_id,
+            data: %{"tags" => ["alpha", "bravo", "charlie"]}
+          },
+          return: :events
+        )
+
+      assert Enum.map(events, & &1.body) == [
+               %{"tag" => "alpha"},
+               %{"tag" => "bravo"},
+               %{"tag" => "charlie"}
+             ],
+             "uncommitted events were returned"
+
+      {:ok, state} = SampleAggregate.get(agg_id)
+      assert state["tags"] == ["alpha", "bravo", "charlie"]
+
+      {:ok, events} =
+        SampleAggregate.evaluate(
+          %Command{
+            type: "tag_counter",
+            aggregate_id: agg_id,
+            data: %{"tags" => ["bravo", "delta"]}
+          },
+          return: :events
+        )
+
+      assert [%{body: %{"tag" => "delta"}}] = events
+
+      {:ok, state} = SampleAggregate.get(agg_id)
+      assert state["tags"] == ["alpha", "bravo", "charlie", "delta"]
+    end
+
     test "recover an intermediate state" do
       {:ok, agg_id} = SampleAggregate.new()
 

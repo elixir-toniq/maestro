@@ -437,13 +437,16 @@ defmodule Maestro.Aggregate.Root do
 
   defp persist_events(agg, command, events) do
     case Store.commit_all(events, agg.projections) do
-      :ok ->
-        {:ok, apply_events(agg, events), events}
+      {:ok, committed} ->
+        {:ok, apply_events(agg, committed), committed}
 
       {:error, :retry_command} ->
         agg
         |> update_aggregate()
         |> eval_command(command)
+
+      {:error, _reason} = error ->
+        error
     end
   end
 
