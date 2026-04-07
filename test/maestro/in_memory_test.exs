@@ -127,6 +127,18 @@ defmodule Maestro.InMemoryTest do
         assert Map.get(snapshot.body, "seq") == max(seq0, seq1)
       end
     end
+
+    test "normalizes atom keys to string keys" do
+      {:ok, agg_id} = HLClock.now(:maestro_hlc)
+      InMemory.reset()
+
+      agg_id
+      |> to_snapshot(1, %{value: 42, nested: %{key: "deep"}})
+      |> Store.commit_snapshot()
+
+      snapshot = Store.get_snapshot(agg_id, 0)
+      assert snapshot.body == %{"value" => 42, "nested" => %{"key" => "deep"}}
+    end
   end
 
   describe "get_snapshot/2" do

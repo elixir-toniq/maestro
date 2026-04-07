@@ -16,7 +16,14 @@ defmodule Maestro.Store.InMemory do
     )
   end
 
-  def commit_all(events, _projections), do: commit_events(events)
+  def commit_all(events, _projections) do
+    committed = Enum.map(events, &normalize_body/1)
+
+    case commit_events(committed) do
+      :ok -> {:ok, committed}
+      error -> error
+    end
+  end
 
   def commit_events([]), do: :ok
 
@@ -25,7 +32,10 @@ defmodule Maestro.Store.InMemory do
   end
 
   def commit_snapshot(snapshot) do
-    Agent.get_and_update(__MODULE__, &update_snapshot(&1, snapshot))
+    Agent.get_and_update(
+      __MODULE__,
+      &update_snapshot(&1, normalize_body(snapshot))
+    )
   end
 
   def get_events(id, min_seq, %{max_sequence: max_seq}) do
@@ -98,4 +108,8 @@ defmodule Maestro.Store.InMemory do
   defp sequence(%{sequence: sequence}), do: sequence
 
   defp aggregate_id(%{aggregate_id: a}), do: a
+
+  defp normalize_body(%{body: body} = event) do
+    %{event | body: body |> Jason.encode!() |> Jason.decode!()}
+  end
 end

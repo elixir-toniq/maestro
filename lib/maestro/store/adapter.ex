@@ -16,24 +16,26 @@ defmodule Maestro.Store.Adapter do
   the store as well. Otherwise, this function dispatches to `commit_events`.
   """
   @callback commit_all([Event.t()], [module()]) ::
-              :ok
+              {:ok, [Event.t()]}
               | {:error, :retry_command}
+              | {:error, any()}
 
   @doc """
   Events are validated according to the `Event.changeset/1` function. If
-  successful, events are committed transactionally. In the event of a conflict
-  on sequence number, the storage mechanism should indicate that the command
-  _could be_ retried by returning `{:error, :retry_command}`. The `Aggregate`'s
-  command lifecycle will see the conflict and update the aggregate's state
-  before attempting to evaluate the command again. This allows for making
-  stricter evaluation rules for commands. If the events could not be committed
-  for any other reason, the storage mechanism should raise an appropriate
-  exception.
+  successful, events are committed transactionally.
+
+  In the event of a conflict on sequence number, the storage mechanism should
+  indicate that the command _could be_ retried by returning `{:error,
+  :retry_command}`. The `Aggregate`'s command lifecycle will see the conflict
+  and update the aggregate's state before attempting to evaluate the command
+  again. This allows for making stricter evaluation rules for commands. If the
+  events could not be committed for any other reason, the storage mechanism
+  should raise an appropriate exception.
   """
   @callback commit_events([Event.t()]) ::
               :ok
               | {:error, :retry_command}
-              | :no_return
+              | {:error, any()}
 
   @doc """
   Snapshots are committed iff the proposed version is newer than the version
@@ -58,8 +60,8 @@ defmodule Maestro.Store.Adapter do
   sequence number, `seq`.
 
   Additional option(s):
-  * `:max_sequence` (integer): a hard upper limit on the sequence number.
-  This is useful when attempting to recreate a past state of an aggregate.
+     * `:max_sequence` (integer): a hard upper limit on the sequence number.
+       This is useful when attempting to recreate a past state of an aggregate.
   """
   @callback get_snapshot(id, seq, options) :: nil | Snapshot.t()
 end
