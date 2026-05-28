@@ -1,7 +1,7 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "1.0.1"
+  @version "1.0.0"
   @source_url "https://github.com/elixir-toniq/maestro"
 
   def project do
