@@ -1,7 +1,7 @@
 defmodule Maestro.Mixfile do
   use Mix.Project
 
-  @version "1.0.0"
+  @version "1.0.1"
   @source_url "https://github.com/elixir-toniq/maestro"
 
   def project do
@@ -73,8 +73,13 @@ defmodule Maestro.Mixfile do
     [
       name: :maestro,
       files: ["lib", "mix.exs", "README.md"],
-      maintainers: ["Neil Menne", "Chris Keathley", "Brent Spell"],
-      licenses: ["Apache 2.0"],
+      maintainers: [
+        "Neil Menne",
+        "Chris Keathley",
+        "Brent Spell",
+        "Lang Martin"
+      ],
+      licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => @source_url,
         "Docs" => "http://hexdocs.pm/maestro"
