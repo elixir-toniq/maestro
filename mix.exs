@@ -43,7 +43,7 @@ defmodule Maestro.Mixfile do
       {:ecto, "~> 3.0"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
-      {:ecto_hlclock, "~> 0.1"},
+      {:ecto_hlclock, "~> 0.4"},
       {:jason, "~> 1.1"},
       {:mock, "~> 0.3", only: :test, runtime: false},
       {:castore, "~> 1.0", only: [:dev, :test]},

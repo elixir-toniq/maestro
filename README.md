@@ -39,6 +39,23 @@ To generate the migrations for the snapshot and event logs, do:
 mix maestro.create.event_store_migration
 ```
 
+## Clock Configuration
+
+Maestro derives aggregate and event identifiers from an `HLClock`. By default
+the clock's node ID is computed via `HLClock.NodeId.hash/0`. To override it,
+configure `:node_id` with either a 64-bit integer or a zero-arity function
+returning one:
+
+```elixir
+config :maestro,
+  node_id: 1
+
+# or
+
+config :maestro,
+  node_id: &MyApp.node_id/0
+```
+
 ## Example
 
 There are three behaviours that make the command/event lifecycle flow:
