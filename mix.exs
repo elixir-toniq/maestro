@@ -43,7 +43,7 @@ defmodule Maestro.Mixfile do
       {:ecto, "~> 3.0"},
       {:ecto_sql, "~> 3.0"},
       {:postgrex, ">= 0.0.0"},
-      {:ecto_hlclock, "~> 0.1"},
+      {:ecto_hlclock, "~> 0.4"},
       {:jason, "~> 1.1"},
       {:mock, "~> 0.3", only: :test, runtime: false},
       {:castore, "~> 1.0", only: [:dev, :test]},
@@ -73,8 +73,13 @@ defmodule Maestro.Mixfile do
     [
       name: :maestro,
       files: ["lib", "mix.exs", "README.md"],
-      maintainers: ["Neil Menne", "Chris Keathley", "Brent Spell"],
-      licenses: ["Apache 2.0"],
+      maintainers: [
+        "Neil Menne",
+        "Chris Keathley",
+        "Brent Spell",
+        "Lang Martin"
+      ],
+      licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => @source_url,
         "Docs" => "http://hexdocs.pm/maestro"
