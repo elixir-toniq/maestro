@@ -6,7 +6,10 @@ defmodule Maestro.SampleAggregate do
   use Maestro.Aggregate.Root,
     command_prefix: Maestro.SampleAggregate.Commands,
     event_prefix: Maestro.SampleAggregate.Events,
-    projections: [Maestro.SampleAggregate.Projections.NameProjectionHandler]
+    projections: [
+      Maestro.SampleAggregate.Projections.NameProjectionHandler,
+      Maestro.SampleAggregate.Projections.TagProjectionHandler
+    ]
 
   def initial_state, do: %{"value" => 0, "name" => nil, "tags" => []}
 

@@ -287,6 +287,28 @@ defmodule Maestro.AggregateTest do
                )
              ) == 0
     end
+
+    test "a projection can reject a commit with an error tuple" do
+      {:ok, agg_id} = SampleAggregate.new()
+
+      com = %Command{
+        type: "tag_counter",
+        aggregate_id: agg_id,
+        data: %{"tags" => ["reserved"]}
+      }
+
+      assert {:error, "reserved tag is reserved"} =
+               SampleAggregate.evaluate(com)
+
+      # the rejected projection rolled the whole transaction back
+      assert Repo.one(
+               from(
+                 e in Event,
+                 where: e.aggregate_id == ^agg_id,
+                 select: count(e.timestamp)
+               )
+             ) == 0
+    end
   end
 
   def repeat(val, times) do

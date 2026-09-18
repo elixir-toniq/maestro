@@ -15,6 +15,10 @@ defmodule Maestro.Aggregate.ProjectionHandler do
   @doc """
   Projections registered with an aggregate root are invoked for _every_ event,
   so they should ignore unrelated events explicitly.
+
+  Like command handlers, a projection can reject the change by returning
+  `{:error, reason}`, which rolls back the event's transaction. Any other return
+  value allows the commit to proceed. Raising also rolls back the transaction.
   """
   @callback project(repo(), event()) :: value :: any()
 end
