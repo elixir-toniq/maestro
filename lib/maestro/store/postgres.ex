@@ -133,11 +133,14 @@ defmodule Maestro.Store.Postgres do
   end
 
   defp run_projections(repo, events, projections) do
-    for handler <- projections,
-        event <- events,
-        do: handler.project(repo, event)
+    pairs = for handler <- projections, event <- events, do: {handler, event}
 
-    {:ok, :ok}
+    Enum.reduce_while(pairs, {:ok, :ok}, fn {handler, event}, acc ->
+      case handler.project(repo, event) do
+        {:error, _} = error -> {:halt, error}
+        _other -> {:cont, acc}
+      end
+    end)
   rescue
     e -> {:error, e}
   end
