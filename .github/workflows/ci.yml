@@ -19,14 +19,7 @@ jobs:
             otp: "27.2"
           - elixir: "1.17.3"
             otp: "26.2"
-          - elixir: "1.17.3"
-            otp: "25.3"
-          - elixir: "1.16.2"
-            otp: "26.2"
-          - elixir: "1.16.2"
-            otp: "25.3"
-          - elixir: "1.16.2"
-            otp: "24.3"
+
 
     services:
       postgres:

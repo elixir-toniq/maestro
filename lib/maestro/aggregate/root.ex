@@ -60,10 +60,17 @@ defmodule Maestro.Aggregate.Root do
 
   @type command :: Maestro.Types.Command.t()
 
+  @typedoc """
+  The aggregate's domain state. Maestro is deliberately agnostic about its
+  shape: it is produced by `initial_state/0` and evolved by event handlers, so
+  the structure is entirely up to the implementer.
+  """
+  @type state :: any()
+
   @type t :: %__MODULE__{
           id: id(),
           sequence: sequence(),
-          state: any(),
+          state: state(),
           module: module(),
           command_prefix: module(),
           event_prefix: module(),
@@ -249,14 +256,14 @@ defmodule Maestro.Aggregate.Root do
   When an aggregate root is created, this callback is invoked to generate the
   state
   """
-  @callback initial_state() :: any()
+  @callback initial_state() :: state()
 
   @doc """
   Snapshots are stored in a single-row-per-aggregate manner and are used to make
   it easier/faster to hydrate the aggregate root. This function should return
   the map which will be JSON encoded when moving to a durable store.
   """
-  @callback prepare_snapshot(root :: t()) :: map()
+  @callback prepare_snapshot(state()) :: map()
 
   @doc """
   Moving from the snapshotted representation to the aggregate root's structure
@@ -264,27 +271,27 @@ defmodule Maestro.Aggregate.Root do
   implementation is provided that simply lifts the map out of the snapshot and
   uses it as the state of the aggregate.
   """
-  @callback use_snapshot(root :: t(), snapshot :: Snapshot.t()) :: any()
+  @callback use_snapshot(root :: t(), snapshot :: Snapshot.t()) :: state()
 
   @doc """
   A (potentially) stale read of the aggregate's state. If you want to ensure the
   state is as up-to-date as possible, see `fetch/1`.
   """
-  @callback get(id()) :: {:ok, any()} | {:error, any()}
+  @callback get(id()) :: {:ok, state()} | {:error, any()}
 
   @doc """
   Forces the aggregate to retrieve any events. Since Maestro operates in a
   node-local manner, it's entirely possible some other node has processed
   commands/events.
   """
-  @callback fetch(id()) :: {:ok, any()} | {:error, any()}
+  @callback fetch(id()) :: {:ok, state()} | {:error, any()}
 
   @doc """
   Recover a past version of the aggregate's state by specifying a maximum
   sequence number. The aggregate's snapshot and any/all events will be used to
   get the state back to that point.
   """
-  @callback replay(id(), sequence()) :: {:ok, any()} | {:error, any()}
+  @callback replay(id(), sequence()) :: {:ok, state()} | {:error, any()}
 
   @type evaluate_opt :: {:return, :events | :state}
   @type evaluate_opts :: [evaluate_opt()]
@@ -295,13 +302,13 @@ defmodule Maestro.Aggregate.Root do
   @callback evaluate(command()) ::
               :ok
               | {:ok, [Maestro.Types.Event.t()]}
-              | {:ok, state :: any()}
+              | {:ok, state()}
               | {:error, any()}
 
   @callback evaluate(command(), evaluate_opts()) ::
               :ok
               | {:ok, [Maestro.Types.Event.t()]}
-              | {:ok, state :: any()}
+              | {:ok, state()}
               | {:error, any()}
 
   @doc """
